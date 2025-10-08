@@ -1,4 +1,5 @@
 // index.js (Punto de entrada del servidor)
+require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors'); // Necesario para comunicar con React

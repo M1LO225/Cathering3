@@ -1,6 +1,7 @@
 // frontend/src/pages/DashboardPage.jsx
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import Button from '../components/common/Button'; 
 
 const DashboardPage = () => {
   const { authService, logout } = useAuth();
