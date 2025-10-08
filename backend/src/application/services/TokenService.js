@@ -1,7 +1,7 @@
 // src/application/services/TokenService.js
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'mi_clave_secreta_super_segura_por_defecto';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 class TokenService {
     static generateToken(userId) {
