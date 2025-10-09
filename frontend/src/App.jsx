@@ -1,68 +1,59 @@
-// frontend/src/App.jsx
-import React from 'react';
-import { Routes, Route, Link } from 'react-router-dom';
-import { useAuth } from './hooks/useAuth';
+// Ruta: frontend/src/App.jsx (CORREGIDO - Sin Router)
 
-// Páginas
+import React from 'react';
+// 🚨 Importar SOLO Routes, Route, Link
+import { Routes, Route, Link } from 'react-router-dom'; 
+import { useAuth } from './hooks/useAuth';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
-// Componentes Layout
+import UserManagementPage from './pages/UserManagementPage'; 
+// Asumiendo que has corregido la ruta a components/ProtectedRoute
 import ProtectedRoute from './components/layout/ProtectedRoute'; 
 
-const Header = () => {
-  const { isAuthenticated, logout } = useAuth();
-  
-  return (
-    <header style={{ padding: '10px', backgroundColor: '#f4f4f4', marginBottom: '20px' }}>
-      <nav>
-        <Link to="/" style={{ marginRight: '15px' }}>Inicio</Link>
-        
-        {!isAuthenticated && (
-          <>
-            <Link to="/login" style={{ marginRight: '15px' }}>Login</Link>
-            <Link to="/register" style={{ marginRight: '15px' }}>Registro</Link>
-          </>
-        )}
-        
-        {isAuthenticated && (
-          <>
-            <Link to="/dashboard" style={{ marginRight: '15px' }}>Dashboard</Link>
-            <button onClick={logout} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'darkred' }}>
-                Logout
-            </button>
-          </>
-        )}
-      </nav>
-    </header>
-  );
+const Navigation = () => {
+    const { isAuthenticated, logout, user } = useAuth();
+
+    return (
+        <nav>
+            <Link to="/">Home</Link>
+            {!isAuthenticated ? (
+                <>
+                    <Link to="/login">Login</Link>
+                    <Link to="/register">Register</Link>
+                </>
+            ) : (
+                <>
+                    <Link to="/dashboard">Dashboard</Link>
+                    <Link to="/manage-users">Manage Users</Link> 
+                    <span>| Welcome, {user?.username}</span>
+                    <button onClick={logout}>Logout</button>
+                </>
+            )}
+        </nav>
+    );
 };
 
 const App = () => {
-  return (
-    <>
-      <Header />
-      <div style={{ padding: '0 20px' }}>
-        <Routes>
-          <Route path="/" element={<h1>Bienvenido a la App</h1>} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          
-          {/* RUTA PROTEGIDA */}
-          <Route 
-            path="/dashboard" 
-            element={
-              <ProtectedRoute>
-                <DashboardPage />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route path="*" element={<h1>404 - Página no encontrada</h1>} />
-        </Routes>
-      </div>
-    </>
-  );
+    return (
+        // 🚨 NO USAR <Router> AQUÍ. Solo el Fragmento o un div padre.
+        <> 
+            <Navigation />
+            <div className="container">
+                <Routes>
+                    <Route path="/" element={<h1>Welcome to the CRUD App</h1>} />
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/register" element={<RegisterPage />} />
+                    
+                    {/* Rutas Protegidas */}
+                    <Route element={<ProtectedRoute />}>
+                        <Route path="/dashboard" element={<DashboardPage />} />
+                        <Route path="/manage-users" element={<UserManagementPage />} /> 
+                    </Route>
+                </Routes>
+            </div>
+        </>
+    );
 };
 
 export default App;

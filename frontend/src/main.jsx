@@ -1,21 +1,19 @@
-// frontend/src/main.jsx
+// Ruta: frontend/src/main.jsx (o main.js)
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+ // 🚨 Debe importar Router
 import App from './App.jsx';
-import { AuthProvider } from './hooks/useAuth.jsx'; // Asegúrate de que la extensión sea correcta
-import { BrowserRouter } from 'react-router-dom';
-
-// Opcional: Estilos base, si tienes un archivo styles/index.css
-// import './styles/index.css'; 
+import { AuthProvider } from './hooks/useAuth'; // 🚨 Debe importar AuthProvider
+import { BrowserRouter as Router } from 'react-router-dom';
+// import './index.css'; // Opcional para estilos globales
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    {/* BrowserRouter necesita envolver toda la app para manejar las rutas */}
-    <BrowserRouter>
-      {/* AuthProvider necesita envolver la app para que useAuth esté disponible */}
-      <AuthProvider> 
+    <Router> 
+      <AuthProvider> {/* Este envuelve TODA la lógica de Auth y servicios */}
         <App />
       </AuthProvider>
-    </BrowserRouter>
+    </Router>
   </React.StrictMode>,
 );

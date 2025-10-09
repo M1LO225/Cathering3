@@ -15,6 +15,7 @@ class AuthController {
                 userId: user.id 
             });
         } catch (error) {
+            console.error('SERVER REGISTER ERROR:', error); 
             if (error.message.includes('exists')) {
                 return res.status(409).json({ error: error.message });
             }

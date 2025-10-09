@@ -100,4 +100,4 @@ class AuthService {
 }
 
 // Exportamos una instancia del servicio para usarla en toda la aplicación
-export default new AuthService();
+export default AuthService;
