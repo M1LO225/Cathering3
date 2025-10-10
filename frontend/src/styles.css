@@ -1,0 +1,251 @@
+/* =============================== */
+/* 1. VARIABLES DE COLOR Y BASE */
+/* =============================== */
+:root {
+    --color-primary: #FFCC33;      /* Amarillo Mostaza/Comida */
+    --color-secondary: #8B4513;    /* Marrón Cálido (Café) */
+    --color-secondary-dark: #6D340A; /* Marrón más oscuro (para navbar y botones) */
+    --color-background: #FAF8F5;   /* Blanco Crema Suave / Beige claro */
+    --color-surface: #FFFFFF;      /* Superficie de tarjetas/formularios */
+    --color-text: #333333;         /* Texto principal oscuro */
+    --color-success: #64A35B;      /* Verde para éxito */
+    --color-danger: #D85D5D;       /* Rojo para eliminar */
+
+    --font-family-base: 'Arial', 'Helvetica', sans-serif;
+    --border-radius: 8px;
+}
+
+body {
+    font-family: var(--font-family-base);
+    background-color: var(--color-background);
+    color: var(--color-text);
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+}
+
+/* Contenedor principal que centra el contenido */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px; 
+}
+
+/* =============================== */
+/* 2. NAVEGACIÓN (NAVBAR) */
+/* =============================== */
+nav {
+    background: linear-gradient(90deg, var(--color-secondary), var(--color-secondary-dark)); 
+    color: white;
+    display: flex;
+    align-items: center;
+    padding: 24px 32px; /* Mayor padding para más espacio */
+    gap: 30px; /* Separación generosa entre enlaces */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    border-bottom: 2px solid var(--color-primary);
+    font-size: 1.15rem;
+}
+
+/* Estilos de los enlaces */
+nav a {
+    color: var(--color-background);
+    text-decoration: none;
+    font-weight: 500;
+    padding: 12px;
+    transition: all 0.2s ease;
+    border-radius: var(--border-radius);
+}
+
+nav a:hover {
+    color: var(--color-secondary-dark);
+    background-color: var(--color-primary);
+}
+
+/* Contenedor de Bienvenida y Logout a la Derecha */
+nav span {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 16px; 
+    font-weight: 600;
+    color: var(--color-primary);
+}
+
+/* Botón de Logout */
+nav button {
+    background-color: transparent;
+    color: white;
+    border: 1px solid var(--color-background);
+    padding: 12px 24px; 
+    font-size: 1rem;
+}
+
+nav button:hover {
+    background-color: var(--color-background);
+    color: var(--color-secondary);
+}
+
+/* =============================== */
+/* 3. BOTONES, INPUTS Y FORMULARIOS */
+/* =============================== */
+
+/* Inputs de Texto/Email/Password */
+input[type="text"], 
+input[type="email"], 
+input[type="password"], 
+form input {
+    width: 100%;
+    padding: 12px; 
+    margin-bottom: 16px; 
+    border: 1px solid #E0E0E0;
+    border-radius: var(--border-radius);
+    background-color: var(--color-surface);
+}
+
+/* Botones Generales */
+button, .btn {
+    padding: 12px 24px; 
+    border-radius: var(--border-radius);
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s, opacity 0.2s;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    
+    /* 🚨 CLAVE: Para el efecto de luz */
+    overflow: hidden; 
+    position: relative; 
+    z-index: 1; 
+}
+
+/* Botón Primario (Login/Register/Submit) */
+button[type="submit"], .btn-primary {
+    /* 🚨 CAMBIO DE COLOR: Fondo marrón, borde amarillo, texto claro */
+    background-color: var(--color-secondary); 
+    color: var(--color-background); 
+    border: 2px solid var(--color-primary); 
+}
+
+/* Efecto de Brillo Diagonal (El Hover) */
+button[type="submit"]::before, .btn-primary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%; /* Inicia fuera del botón */
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    /* Degradado blanco transparente para simular la luz diagonal */
+    background: linear-gradient(
+        100deg, 
+        transparent, 
+        rgba(255, 255, 255, 0.4) 40%, 
+        rgba(255, 255, 255, 0.2) 50%, 
+        transparent 60%
+    );
+    transition: left 0.5s cubic-bezier(0.1, 0.7, 0.8, 1);
+}
+
+/* Mueve el brillo diagonal de izquierda a derecha en hover */
+button[type="submit"]:hover::before, .btn-primary:hover::before {
+    left: 100%;
+}
+
+button[type="submit"]:hover:not(:disabled), .btn-primary:hover {
+    background-color: var(--color-secondary-dark); /* Color ligeramente más oscuro al hacer hover */
+    color: var(--color-background);
+}
+
+button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* Estilos de los Formularios (Login/Register/CRUD) */
+form {
+    background-color: var(--color-surface);
+    padding: 32px;
+    border-radius: 16px; 
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    margin-top: 32px;
+    position: relative; 
+}
+
+/* =============================== */
+/* 4. GESTIÓN DE USUARIOS (CRUD) */
+/* =============================== */
+
+/* Contenedor Principal del CRUD */
+.user-management-container {
+    padding: 32px;
+    background-color: var(--color-surface);
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Botón de alternar (Crear) */
+.btn-toggle-create {
+    background-color: var(--color-success);
+    color: white;
+    margin-bottom: 24px;
+}
+
+/* Formulario de Creación/Edición (para distinguirlo del fondo) */
+.create-form, .edit-form {
+    padding: 24px;
+    background-color: var(--color-background); 
+    border-radius: var(--border-radius);
+    margin-bottom: 32px;
+    border: 1px dashed #E0E0E0;
+}
+
+/* Tabla */
+.user-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin-top: 24px;
+}
+
+.user-table th, .user-table td {
+    padding: 16px; /* Espacio cómodo en celdas */
+    text-align: left;
+    border-bottom: 1px solid #F0F0F0;
+}
+
+.user-table th {
+    background-color: var(--color-secondary);
+    color: white;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+/* Estilos para los botones de acción (Editar/Eliminar) */
+.user-table td:last-child {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.btn-edit, .btn-delete {
+    padding: 8px 16px; 
+    font-size: 0.9rem;
+    min-width: 80px; 
+    text-align: center;
+    /* Quitamos el overflow: hidden de los botones de CRUD para simplificar y solo aplicarlo al primary */
+    overflow: visible; 
+}
+
+.btn-edit {
+    background-color: var(--color-primary);
+    color: var(--color-secondary);
+}
+
+.btn-delete {
+    background-color: var(--color-danger);
+    color: white;
+}
+
+.user-table tr:hover:not(:first-child) {
+    background-color: #FFFDEE;
+}

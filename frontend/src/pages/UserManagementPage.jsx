@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 
-
 const UserManagementPage = () => {
     const { userService, isAuthenticated, logout } = useAuth();
     const [users, setUsers] = useState([]);
@@ -15,7 +14,7 @@ const UserManagementPage = () => {
     const [isCreating, setIsCreating] = useState(false);
 
     // Estados para la EDICIÓN
-    const [editingUser, setEditingUser] = useState(null); // ID del usuario que se está editando
+    const [editingUser, setEditingUser] = useState(null); 
     const [editForm, setEditForm] = useState({ username: '', email: '', password: '' }); 
 
 
@@ -63,12 +62,11 @@ const UserManagementPage = () => {
 
     // --- MANEJO DE EDICIÓN ---
     const startEditing = (user) => {
-        // Establecer el usuario a editar y precargar el formulario
         setEditingUser(user.id);
         setEditForm({ 
             username: user.username, 
             email: user.email, 
-            password: '' // La contraseña debe dejarse vacía
+            password: '' 
         });
     };
 
@@ -81,23 +79,19 @@ const UserManagementPage = () => {
         setError(null);
         if (!editingUser) return;
         
-        // Objeto de actualizaciones
         const updates = {};
         const currentUserData = users.find(u => u.id === editingUser);
 
-        // Comprobar cambios
         if (editForm.username !== currentUserData.username) {
             updates.username = editForm.username;
         }
         if (editForm.email !== currentUserData.email) {
             updates.email = editForm.email;
         }
-        // Solo incluir la contraseña si se escribió algo
         if (editForm.password) {
             updates.password = editForm.password;
         }
         
-        // Si no hay cambios, cancelar la operación
         if (Object.keys(updates).length === 0) {
             setEditingUser(null);
             return alert("No changes detected.");
@@ -106,8 +100,8 @@ const UserManagementPage = () => {
         try {
             await userService.updateUser(editingUser, updates);
             alert(`User ID ${editingUser} updated successfully.`);
-            setEditingUser(null); // Cerrar el formulario de edición
-            fetchUsers(); // Recargar la lista
+            setEditingUser(null); 
+            fetchUsers(); 
         } catch (err) {
             setError(err.message);
         }
@@ -121,21 +115,24 @@ const UserManagementPage = () => {
         try {
             await userService.deleteUser(userId);
             alert(`User ID ${userId} deleted.`);
-            fetchUsers(); // Recargar la lista
+            fetchUsers(); 
         } catch (err) {
             setError(err.message);
         }
     };
 
+    // Usamos las clases de error y carga globales
     if (loading) return <div className="loading">Cargando usuarios...</div>;
     if (error) return <div className="error">Error: {error}</div>;
 
     return (
+        // 🚨 Clase principal para aplicar el fondo y la sombra suave
         <div className="user-management-container">
-            <h1>Gestión de Usuarios (CRUD Completo)</h1>
+            <h1>Gestión de Usuarios</h1>
             <p className="total-users">Total Users: {users.length}</p>
 
             {/* Formulario de Creación */}
+            {/* 🚨 Clase del botón primario/éxito */}
             <button 
                 className="btn-toggle-create"
                 onClick={() => setIsCreating(!isCreating)}
@@ -144,6 +141,7 @@ const UserManagementPage = () => {
             </button>
 
             {isCreating && (
+
                 <form className="create-form" onSubmit={handleCreateUser}>
                     <h3>Crear Usuario</h3>
                     <input type="text" name="username" placeholder="Username" value={createForm.username} onChange={handleCreateFormChange} required />
@@ -153,7 +151,6 @@ const UserManagementPage = () => {
                 </form>
             )}
 
-            {/* Listado de Usuarios */}
             <table className="user-table">
                 <thead>
                     <tr>
@@ -173,6 +170,7 @@ const UserManagementPage = () => {
                                 <td>{user.email}</td>
                                 <td>{new Date(user.createdAt).toLocaleDateString()}</td>
                                 <td>
+                                    {/* 🚨 Clases para los botones de acción */}
                                     <button 
                                         className="btn-edit" 
                                         onClick={() => startEditing(user)}
@@ -193,11 +191,13 @@ const UserManagementPage = () => {
                             {editingUser === user.id && (
                                 <tr>
                                     <td colSpan="5">
+                                        {/* 🚨 Clase para el formulario de Edición */}
                                         <form className="edit-form" onSubmit={handleUpdateUser}>
                                             <h4>Edit User ID: {user.id}</h4>
                                             <input type="text" name="username" placeholder="Username" value={editForm.username} onChange={handleEditFormChange} required />
                                             <input type="email" name="email" placeholder="Email" value={editForm.email} onChange={handleEditFormChange} required />
                                             <input type="password" name="password" placeholder="New Password (optional)" value={editForm.password} onChange={handleEditFormChange} />
+                                            {/* Los botones dentro de formularios tienen estilos base */}
                                             <button type="submit">Save Changes</button>
                                             <button type="button" onClick={() => setEditingUser(null)}>Cancel</button>
                                         </form>

@@ -1,20 +1,19 @@
-// Ruta: frontend/src/App.jsx (CORREGIDO - Sin Router)
+// Ruta: frontend/src/App.jsx
 
 import React from 'react';
-// 🚨 Importar SOLO Routes, Route, Link
 import { Routes, Route, Link } from 'react-router-dom'; 
 import { useAuth } from './hooks/useAuth';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import UserManagementPage from './pages/UserManagementPage'; 
-// Asumiendo que has corregido la ruta a components/ProtectedRoute
 import ProtectedRoute from './components/layout/ProtectedRoute'; 
 
 const Navigation = () => {
     const { isAuthenticated, logout, user } = useAuth();
 
     return (
+        // El tag <nav> recibe los estilos del CSS global
         <nav>
             <Link to="/">Home</Link>
             {!isAuthenticated ? (
@@ -25,8 +24,10 @@ const Navigation = () => {
             ) : (
                 <>
                     <Link to="/dashboard">Dashboard</Link>
+                    {/* El link al CRUD recibe el estilo de <a> dentro de <nav> */}
                     <Link to="/manage-users">Manage Users</Link> 
-                    <span>| Welcome, {user?.username}</span>
+                    <span>Welcome, {user?.username}</span>
+                    {/* El botón recibe el estilo de <button> dentro de <nav> */}
                     <button onClick={logout}>Logout</button>
                 </>
             )}
@@ -36,12 +37,12 @@ const Navigation = () => {
 
 const App = () => {
     return (
-        // 🚨 NO USAR <Router> AQUÍ. Solo el Fragmento o un div padre.
         <> 
             <Navigation />
+            {/* 🚨 Aplica la clase 'container' para el diseño centralizado */}
             <div className="container">
                 <Routes>
-                    <Route path="/" element={<h1>Welcome to the CRUD App</h1>} />
+                    <Route path="/" element={<h1>Welcome to the Food App CRUD</h1>} />
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/register" element={<RegisterPage />} />
                     

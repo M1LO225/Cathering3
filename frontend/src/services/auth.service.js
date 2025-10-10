@@ -1,7 +1,7 @@
 // frontend/src/services/auth.service.js
 
 const API_URL = 'http://localhost:3000/api/auth';
-const TOKEN_KEY = 'authToken';
+const TOKEN_KEY = 'token';
 
 class AuthService {
     
