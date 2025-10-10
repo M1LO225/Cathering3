@@ -51,7 +51,7 @@ Sigue estos pasos para levantar el proyecto localmente.
 1. Clonar el Repositorio
 Bash
 
-git clone https://www.youtube.com/watch?v=eQMcIGVc8N0
+git clone
 cd CateringCRUD
 2. Configurar el Backend (Asumido)
 (Añade aquí los pasos para tu backend si aplica, ej.:)
