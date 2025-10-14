@@ -1,4 +1,4 @@
-// src/application/use-cases/RegisterUser.js
+
 const User = require('../../domain/entities/User');
 const EncryptService = require('../services/EncryptService');
 

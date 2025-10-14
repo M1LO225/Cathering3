@@ -1,4 +1,4 @@
-// frontend/src/components/common/Input.jsx
+
 import React from 'react';
 
 const Input = ({ label, id, type = 'text', value, onChange, placeholder, required = false }) => {

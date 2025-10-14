@@ -1,4 +1,3 @@
-// Ruta: frontend/src/App.jsx
 
 import React from 'react';
 import { Routes, Route, Link } from 'react-router-dom'; 
@@ -13,7 +12,7 @@ const Navigation = () => {
     const { isAuthenticated, logout, user } = useAuth();
 
     return (
-        // El tag <nav> recibe los estilos del CSS global
+
         <nav>
             <Link to="/">Home</Link>
             {!isAuthenticated ? (
@@ -24,10 +23,10 @@ const Navigation = () => {
             ) : (
                 <>
                     <Link to="/dashboard">Dashboard</Link>
-                    {/* El link al CRUD recibe el estilo de <a> dentro de <nav> */}
+
                     <Link to="/manage-users">Manage Users</Link> 
                     <span>Welcome, {user?.username}</span>
-                    {/* El botón recibe el estilo de <button> dentro de <nav> */}
+
                     <button onClick={logout}>Logout</button>
                 </>
             )}
@@ -39,14 +38,14 @@ const App = () => {
     return (
         <> 
             <Navigation />
-            {/* 🚨 Aplica la clase 'container' para el diseño centralizado */}
+
             <div className="container">
                 <Routes>
                     <Route path="/" element={<h1>Welcome to the Food App CRUD</h1>} />
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/register" element={<RegisterPage />} />
                     
-                    {/* Rutas Protegidas */}
+
                     <Route element={<ProtectedRoute />}>
                         <Route path="/dashboard" element={<DashboardPage />} />
                         <Route path="/manage-users" element={<UserManagementPage />} /> 

@@ -1,7 +1,7 @@
-// src/infrastructure/repositories/SQLiteUserRepository.js
+
 const UserRepository = require('../../domain/repositories/UserRepository');
 const User = require('../../domain/entities/User');
-// 🚨 NUEVA IMPORTACIÓN
+
 const { run, get, all } = require('./dbUtils'); 
 
 class SQLiteUserRepository extends UserRepository {
@@ -10,9 +10,8 @@ class SQLiteUserRepository extends UserRepository {
         this.db = db;
     }
 
-    // --- MÉTODOS DE AUTH (Integrados con tu estructura) ---
 
-    // Nuevo: findById usando dbUtils (Necesario para CRUD y LoginUser)
+
     async findById(id) {
         const row = await get(this.db, 'SELECT id, username, passwordHash, email FROM users WHERE id = ?', [id]);
         if (!row) return null;
@@ -41,7 +40,7 @@ class SQLiteUserRepository extends UserRepository {
 
     async save(user) {
         return new Promise((resolve, reject) => {
-            // Incluimos createdAt
+
             this.db.run(
                 'INSERT INTO users (username, passwordHash, email, createdAt) VALUES (?, ?, ?, DATETIME("now"))',
                 [user.username, user.passwordHash, user.email],
@@ -54,22 +53,19 @@ class SQLiteUserRepository extends UserRepository {
         });
     }
     
-    // --- NUEVOS MÉTODOS CRUD ---
 
-    // 🚨 CRUD: READ ALL
     async findAll() {
         const stmt = `SELECT id, username, email, createdAt FROM users ORDER BY id DESC`;
         return all(this.db, stmt);
     }
 
-    // 🚨 CRUD: DELETE (Requerido para el paso final)
+
     async delete(id) {
         const stmt = `DELETE FROM users WHERE id = ?`;
         await run(this.db, stmt, [id]);
         return true;
     }
 
-    // 🚨 CRUD: UPDATE (Lo necesitarás para la funcionalidad completa)
     async update(id, username, email, passwordHash) {
         let updates = [];
         let params = [];
@@ -84,7 +80,7 @@ class SQLiteUserRepository extends UserRepository {
         params.push(id);
         
         await run(this.db, stmt, params);
-        // Devuelve la entidad actualizada
+
         return this.findById(id); 
     }
 }

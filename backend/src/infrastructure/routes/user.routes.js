@@ -7,7 +7,7 @@ const express = require('express');
  */
 const UserRoutes = (useCases, AuthMiddleware) => {
     const router = express.Router();
-    // 🚨 Agregamos registerUser al destructurado para CREAR usuarios
+    //Agregamos registerUser al destructurado para CREAR usuarios
     const { getAllUsers, updateUser, deleteUser, registerUser } = useCases; 
 
     // --- Controlador de Usuarios ---
@@ -94,7 +94,7 @@ const UserRoutes = (useCases, AuthMiddleware) => {
     const controller = new UserController();
 
     // Rutas (Todas protegidas por AuthMiddleware)
-    router.post('/', AuthMiddleware, controller.create);       // 🚨 RUTA CREATE
+    router.post('/', AuthMiddleware, controller.create);   
     router.get('/', AuthMiddleware, controller.listUsers); 
     router.put('/:id', AuthMiddleware, controller.update);     
     router.delete('/:id', AuthMiddleware, controller.delete);  

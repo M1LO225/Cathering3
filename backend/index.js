@@ -13,7 +13,7 @@ const SQLiteUserRepository = require('./src/infrastructure/repositories/SQLiteUs
 const authRoutes = require('./src/infrastructure/routes/auth.routes');
 const AuthController = require('./src/infrastructure/controllers/AuthController');
 const AuthMiddleware = require('./src/infrastructure/middlewares/AuthMiddleware');
-const RegisterUser = require('./src/application/use-cases/RegisterUser'); // 🚨 Ya existe
+const RegisterUser = require('./src/application/use-cases/RegisterUser'); 
 const LoginUser = require('./src/application/use-cases/LoginUser');
 
 // --- Componentes CRUD ---
@@ -27,7 +27,7 @@ const DeleteUser = require('./src/application/use-cases/DeleteUser');
 const userRepository = new SQLiteUserRepository(db);
 
 // Casos de Uso de Autenticación (incluye RegisterUser)
-const registerUser = new RegisterUser(userRepository); // 🚨 INSTANCIA EXISTENTE
+const registerUser = new RegisterUser(userRepository); 
 const loginUser = new LoginUser(userRepository);
 const authController = new AuthController(registerUser, loginUser);
 
@@ -48,7 +48,7 @@ app.use(bodyParser.json());
 app.use('/api/auth', authRoutes(authController));
 
 // B. Rutas de CRUD de Usuarios (PROTEGIDAS)
-// 🚨 Le pasamos TAMBIÉN el caso de uso registerUser (la "C" de Create)
+//Le pasamos TAMBIÉN el caso de uso registerUser (la "C" de Create)
 app.use('/api/users', userRoutes({ getAllUsers, updateUser, deleteUser, registerUser }, AuthMiddleware)); 
 
 // C. Ejemplo de Ruta Protegida existente

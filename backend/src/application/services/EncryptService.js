@@ -1,4 +1,4 @@
-// src/application/services/EncryptService.js
+
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
 

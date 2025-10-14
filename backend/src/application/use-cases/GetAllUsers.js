@@ -5,12 +5,10 @@ class GetAllUsers {
         this.userRepository = userRepository;
     }
 
-    /**
-     * Obtiene la lista de todos los usuarios desde el repositorio.
-     */
+
     async execute() {
         try {
-            // Llama al repositorio para obtener todos los usuarios
+ 
             const users = await this.userRepository.findAll();
             return users;
         } catch (error) {

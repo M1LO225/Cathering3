@@ -1,4 +1,4 @@
-// src/domain/entities/User.js
+
 class User {
     constructor(id, username, passwordHash, email) {
         this.id = id;

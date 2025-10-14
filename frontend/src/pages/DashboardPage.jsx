@@ -1,4 +1,4 @@
-// frontend/src/pages/DashboardPage.jsx
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import Button from '../components/common/Button'; 
@@ -10,14 +10,13 @@ const DashboardPage = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Usamos el método fetchProtected del servicio para obtener datos
-        // NOTA: 'protected/data' es el endpoint que creamos en index.js del backend
+
         const response = await authService.fetchProtected('protected/data');
         const data = await response.json();
         setProtectedData(data.data);
       } catch (error) {
         setProtectedData('Error al cargar datos protegidos o sesión expirada.');
-        // El authService ya llamó a logout() si el token es inválido
+
       }
     };
     fetchData();

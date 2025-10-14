@@ -1,4 +1,4 @@
-// frontend/src/components/auth/RegisterForm.jsx (CÓDIGO CORREGIDO)
+
 
 import React, { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
@@ -14,18 +14,17 @@ const RegisterForm = () => {
     confirmPassword: '',
   });
   
-  // 🚨 Solo desestructuramos lo necesario, el estado 'error' del useAuth 
-  // es para la inicialización. Usaremos un estado local 'submitError'.
+
   const { register, loading } = useAuth(); 
   const navigate = useNavigate();
   
   const [successMessage, setSuccessMessage] = useState('');
-  const [submitError, setSubmitError] = useState(null); // 🚨 Nuevo estado para errores de envío
+  const [submitError, setSubmitError] = useState(null); 
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     setSuccessMessage('');
-    setSubmitError(null); // Limpiar errores al cambiar
+    setSubmitError(null); 
   };
 
   const handleSubmit = async (e) => {
@@ -45,15 +44,15 @@ const RegisterForm = () => {
             formData.password
         );
 
-        // 💥 REGISTRO EXITOSO: Mostrar mensaje y redirigir
+        
         setSuccessMessage('¡Registro exitoso! Serás redirigido al Login.');
         setFormData({ username: '', email: '', password: '', confirmPassword: '' });
         
-        // Redirigir al Login después de 2 segundos
+       
         setTimeout(() => navigate('/login'), 2000); 
 
     } catch (error) {
-        // 💥 REGISTRO FALLIDO: Mostrar el mensaje de error del backend
+        
         setSubmitError(error.message || 'Error desconocido durante el registro.');
     }
   };
@@ -62,10 +61,10 @@ const RegisterForm = () => {
     <form onSubmit={handleSubmit} style={{ maxWidth: '400px', margin: '0 auto', padding: '20px', border: '1px solid #ddd', borderRadius: '8px' }}>
       <h2>Registro de Usuario</h2>
       
-      {/* 🚨 USAR el nuevo estado de error de envío */}
+
       {submitError && <p style={{ color: 'red' }}>Error: {submitError}</p>}
       {successMessage && <p style={{ color: 'green' }}>{successMessage}</p>}
-      {/* ... (resto de tus Input y Button) */}
+      
     
       <Input
         label="Nombre de Usuario"

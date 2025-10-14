@@ -1,4 +1,4 @@
-// src/domain/repositories/UserRepository.js (Contrato/Interfaz)
+
 class UserRepository {
     async findByUsername(username) {
         throw new Error('Method findByUsername not implemented.');

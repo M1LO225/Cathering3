@@ -1,4 +1,4 @@
-// src/infrastructure/controllers/AuthController.js
+
 class AuthController {
     constructor(registerUser, loginUser) {
         this.registerUser = registerUser;
@@ -36,15 +36,15 @@ class AuthController {
             });
 
         } catch (error) {
-            // 🚨 AÑADIR ESTA LÍNEA: Imprimir el error completo del servidor para el diagnóstico.
+
             console.error('Login Error Interno:', error); 
 
             if (error.message.includes('credentials')) {
-                // Error de negocio: Credenciales Inválidas
+
                 return res.status(401).json({ error: error.message });
             }
             
-            // Error técnico/inesperado
+
             return res.status(500).json({ error: 'Internal server error during login.' });
         }
     }

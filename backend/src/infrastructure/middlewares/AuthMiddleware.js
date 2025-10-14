@@ -1,4 +1,4 @@
-// src/infrastructure/middlewares/AuthMiddleware.js
+
 const TokenService = require('../../application/services/TokenService');
 
 const AuthMiddleware = (req, res, next) => {

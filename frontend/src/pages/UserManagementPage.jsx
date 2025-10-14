@@ -1,4 +1,4 @@
-// Ruta: frontend/src/pages/UserManagementPage.jsx
+
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
@@ -9,11 +9,10 @@ const UserManagementPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // Estados para la CREACIÓN
+
     const [createForm, setCreateForm] = useState({ username: '', email: '', password: '' });
     const [isCreating, setIsCreating] = useState(false);
 
-    // Estados para la EDICIÓN
     const [editingUser, setEditingUser] = useState(null); 
     const [editForm, setEditForm] = useState({ username: '', email: '', password: '' }); 
 
@@ -41,7 +40,7 @@ const UserManagementPage = () => {
         }
     }, [isAuthenticated, userService]);
 
-    // --- MANEJO DE CREACIÓN ---
+
     const handleCreateFormChange = (e) => {
         setCreateForm({ ...createForm, [e.target.name]: e.target.value });
     };
@@ -60,7 +59,7 @@ const UserManagementPage = () => {
         }
     };
 
-    // --- MANEJO DE EDICIÓN ---
+
     const startEditing = (user) => {
         setEditingUser(user.id);
         setEditForm({ 
@@ -107,7 +106,7 @@ const UserManagementPage = () => {
         }
     };
     
-    // --- MANEJO DE ELIMINACIÓN ---
+
     const handleDeleteUser = async (userId) => {
         if (!window.confirm(`Are you sure you want to delete user ID ${userId}?`)) return;
         
@@ -121,18 +120,16 @@ const UserManagementPage = () => {
         }
     };
 
-    // Usamos las clases de error y carga globales
     if (loading) return <div className="loading">Cargando usuarios...</div>;
     if (error) return <div className="error">Error: {error}</div>;
 
     return (
-        // 🚨 Clase principal para aplicar el fondo y la sombra suave
+
         <div className="user-management-container">
             <h1>Gestión de Usuarios</h1>
             <p className="total-users">Total Users: {users.length}</p>
 
-            {/* Formulario de Creación */}
-            {/* 🚨 Clase del botón primario/éxito */}
+
             <button 
                 className="btn-toggle-create"
                 onClick={() => setIsCreating(!isCreating)}
@@ -170,7 +167,7 @@ const UserManagementPage = () => {
                                 <td>{user.email}</td>
                                 <td>{new Date(user.createdAt).toLocaleDateString()}</td>
                                 <td>
-                                    {/* 🚨 Clases para los botones de acción */}
+
                                     <button 
                                         className="btn-edit" 
                                         onClick={() => startEditing(user)}
@@ -187,17 +184,17 @@ const UserManagementPage = () => {
                                 </td>
                             </tr>
                             
-                            {/* Formulario de Edición en Línea */}
+
                             {editingUser === user.id && (
                                 <tr>
                                     <td colSpan="5">
-                                        {/* 🚨 Clase para el formulario de Edición */}
+
                                         <form className="edit-form" onSubmit={handleUpdateUser}>
                                             <h4>Edit User ID: {user.id}</h4>
                                             <input type="text" name="username" placeholder="Username" value={editForm.username} onChange={handleEditFormChange} required />
                                             <input type="email" name="email" placeholder="Email" value={editForm.email} onChange={handleEditFormChange} required />
                                             <input type="password" name="password" placeholder="New Password (optional)" value={editForm.password} onChange={handleEditFormChange} />
-                                            {/* Los botones dentro de formularios tienen estilos base */}
+
                                             <button type="submit">Save Changes</button>
                                             <button type="button" onClick={() => setEditingUser(null)}>Cancel</button>
                                         </form>

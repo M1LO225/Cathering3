@@ -1,10 +1,10 @@
-// Ruta: frontend/src/services/UserService.js
+
 
 const API_BASE_URL = 'http://localhost:3000/api';
 
 class UserService {
     /**
-     * @param {string} token - El JWT para la autenticación.
+     * @param {string} token 
      */
     constructor(token) {
         this.token = token;
@@ -43,7 +43,7 @@ class UserService {
         return response.json();
     }
     
-    // MÉTODO UPDATE (PUT)
+
     async updateUser(userId, updates) {
         const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
             method: 'PUT',
