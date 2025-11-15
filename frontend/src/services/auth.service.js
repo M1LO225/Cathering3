@@ -1,54 +1,53 @@
-
-
 const API_URL = 'http://localhost:3000/api/auth';
 const TOKEN_KEY = 'token';
 
 class AuthService {
-    
 
-    async register(username, email, password) {
-        const response = await fetch(`${API_URL}/register`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ username, email, password }),
-        });
+    /**
+     * REGISTRO ACTUALIZADO
+     * Ahora envía el formulario completo para crear Colegio + Admin
+     * @param {Object} formData (incluye user y colegio data)
+     */
+    async register(formData) {
+        const response = await fetch(`${API_URL}/register`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData), // Envía el objeto completo
+        });
+        
+        const data = await response.json();
 
-        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.error || 'Registration failed');
+        }
+        
+        // El backend ahora solo devuelve un mensaje de éxito, no un token
+        return data; 
+    }
 
-        if (!response.ok) {
-
-            throw new Error(data.error || 'Registration failed');
-        }
-
-        return data;
-    }
-    
-
-    async login(usernameOrEmail, password) {
-        const response = await fetch(`${API_URL}/login`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ usernameOrEmail, password }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.error || 'Login failed');
-        }
-
-
-        localStorage.setItem(TOKEN_KEY, data.token);
-        
-
-        return data.user;
-    }
-    
-
+    /**
+     * Login (sin cambios en la lógica)
+     */
+    async login(usernameOrEmail, password) {
+        const response = await fetch(`${API_URL}/login`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ usernameOrEmail, password }),
+        });
+        
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.error || 'Login failed');
+        }
+        
+        // Guardamos el token y devolvemos el usuario
+        localStorage.setItem(TOKEN_KEY, data.token);
+        return data.user; 
+    }
     getToken() {
         return localStorage.getItem(TOKEN_KEY);
     }
@@ -88,7 +87,7 @@ class AuthService {
 
         return response;
     }
+    
 }
-
 
 export default AuthService;
