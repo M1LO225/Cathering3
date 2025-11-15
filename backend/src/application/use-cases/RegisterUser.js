@@ -1,25 +1,25 @@
-
 const User = require('../../domain/entities/User');
 const EncryptService = require('../services/EncryptService');
 
 class RegisterUser {
-    constructor(userRepository) {
-        this.userRepository = userRepository;
-    }
+    constructor(userRepository) {
+        this.userRepository = userRepository;
+    }
 
-    async execute(username, email, password) {
-        if (await this.userRepository.findByUsername(username)) {
-            throw new Error('Username already exists.');
-        }
-        if (await this.userRepository.findByEmail(email)) {
-            throw new Error('Email already exists.');
-        }
+    /**
+     * Ejecuta el registro de un Colegio + Admin
+        @param {Object} userData - { username, email, password }
+        @param {Object} colegioData - { nombre, direccion, telefono, ... }
+     */
+    async execute(userData, colegioData) {
+        // La validación de 'exists' la maneja la DB (UNIQUE constraint)
+        
+        const passwordHash = await EncryptService.hashPassword(userData.password);
+        const newUser = new User(null, userData.username, passwordHash, userData.email);
 
-        const passwordHash = await EncryptService.hashPassword(password);
-
-        const newUser = new User(null, username, passwordHash, email);
-        return this.userRepository.save(newUser);
-    }
+        // Usamos el método del repositorio que hace la transacción
+        return this.userRepository.createColegioAdmin(newUser, colegioData);
+    }
 }
 
 module.exports = RegisterUser;
