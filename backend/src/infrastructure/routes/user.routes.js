@@ -1,21 +1,19 @@
 const express = require('express');
-const EncryptService = require('../../application/services/EncryptService'); // Necesario para hashear
-const isColegioAdmin = require('../middlewares/isColegioAdmin'); // Importar el middleware de rol
+const EncryptService = require('../../application/services/EncryptService'); 
+const isColegioAdmin = require('../middlewares/isColegioAdmin'); 
 
 const UserRoutes = (useCases, AuthMiddleware) => {
     const router = express.Router();
     const { getAllUsers, updateUser, deleteUser, userRepository } = useCases; 
 
-    // --- Controlador de Usuarios ---
+
     class UserController {
         
-        /**
-         * (Admin) Crea un nuevo usuario (Cafeteria o Estudiante)
-         */
+ 
         async createUserByAdmin(req, res, roleToCreate) {
             const { username, email, password } = req.body;
             
-            // Obtenemos el colegio_id del token del admin, no del body.
+    
             const adminUser = req.user;
             const colegioId = adminUser.colegio_id;
 
@@ -43,10 +41,10 @@ const UserRoutes = (useCases, AuthMiddleware) => {
             }
         }
         
-        // READ (GET /)
+   
         async listUsers(req, res) {
             try {
-                // TODO: Filtrar para que solo muestre usuarios de req.user.colegio_id
+   
                 const users = await getAllUsers.execute();
                 res.status(200).json(users);
             } catch (error) {
@@ -55,12 +53,12 @@ const UserRoutes = (useCases, AuthMiddleware) => {
             }
         }
         
-        // UPDATE (PUT /:id)
+
         async update(req, res) {
             const { id } = req.params; 
             const updates = req.body; 
             try {
-                // TODO: Validar que el admin solo pueda actualizar usuarios de su colegio
+   
                 const updatedUser = await updateUser.execute(parseInt(id), updates);
                 res.status(200).json({ 
                     message: `User ${id} updated successfully.`, 
@@ -71,11 +69,11 @@ const UserRoutes = (useCases, AuthMiddleware) => {
             }
 _     }
         
-        // DELETE (DELETE /:id)
+   
         async delete(req, res) {
             const { id } = req.params;
             try {
-                // TODO: Validar que el admin solo pueda borrar usuarios de su colegio
+   
                 await deleteUser.execute(parseInt(id));
                 res.status(200).json({ message: `User ${id} deleted successfully.` });
             } catch (error) {
@@ -86,10 +84,10 @@ _     }
 
     const controller = new UserController();
 
-    // --- Rutas (Todas protegidas por AuthMiddleware) ---
+
     router.use(AuthMiddleware);
 
-    // Rutas de Gestión del Admin (Solo Admin puede acceder)
+
     router.post(
         '/cafeteria', 
         isColegioAdmin, 

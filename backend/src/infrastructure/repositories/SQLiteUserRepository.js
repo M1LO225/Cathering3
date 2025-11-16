@@ -10,37 +10,27 @@ class SQLiteUserRepository extends UserRepository {
         this.db = db;
     }
 
-    /**
-     * Busca un usuario por ID y devuelve todos los datos (incluyendo rol y colegio)
-     * Usado por AuthMiddleware para obtener el perfil completo.
-     */
+
     async findById(id) {
         const stmt = `SELECT id, username, passwordHash, email, role, colegio_id FROM users WHERE id = ?`;
         const row = await get(this.db, stmt, [id]);
         return row; 
     }
-    
-    /**
-     * Busca un usuario por username (usado para Login)
-     */
+
     async findByUsername(username) {
         const row = await get(this.db, 'SELECT * FROM users WHERE username = ?', [username]);
         if (!row) return null;
         return new User(row.id, row.username, row.passwordHash, row.email);
     }
 
-    /**
-     * Busca un usuario por email (usado para Login)
-     */
+
     async findByEmail(email) {
         const row = await get(this.db, 'SELECT * FROM users WHERE email = ?', [email]);
         if (!row) return null;
         return new User(row.id, row.username, row.passwordHash, row.email);
     }
 
-    /**
-     * Método de guardado simple (tu 'save' original)
-     */
+
     async save(user) {
         const stmt = 'INSERT INTO users (username, passwordHash, email, createdAt) VALUES (?, ?, ?, DATETIME("now"))';
         const { lastID } = await run(this.db, stmt, [user.username, user.passwordHash, user.email]);
@@ -48,10 +38,7 @@ class SQLiteUserRepository extends UserRepository {
         return user;
     }
     
-    /**
-     * (NUEVO) Crea un Colegio y un Usuario Admin en una transacción.
-     * Usado por RegisterUser.
-     */
+
     async createColegioAdmin(user, colegioData) {
         await run(this.db, 'BEGIN TRANSACTION');
         try {
@@ -80,10 +67,7 @@ class SQLiteUserRepository extends UserRepository {
         }
     }
 
-    /**
-     * (NUEVO) Método para que un Admin cree un usuario (Cafeteria o Estudiante)
-     * Usado por user.routes.js
-     */
+
     async saveWithRole(user) { // user = { username, passwordHash, email, role, colegio_id }
         const stmt = `INSERT INTO users (username, passwordHash, email, role, colegio_id, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, DATETIME("now"), DATETIME("now"))`;
         const { lastID } = await run(this.db, stmt, [
@@ -97,27 +81,21 @@ class SQLiteUserRepository extends UserRepository {
         return user;
     }
 
-    /**
-     * Obtiene todos los usuarios
-     */
+
     async findAll() {
         const stmt = `SELECT id, username, email, role, colegio_id, createdAt FROM users ORDER BY id DESC`;
         return all(this.db, stmt);
     }
 
 
-    /**
-     * Elimina un usuario por ID
-     */
+
     async delete(id) {
         const stmt = `DELETE FROM users WHERE id = ?`;
         await run(this.db, stmt, [id]);
         return true;
     }
 
-    /**
-     * Actualiza un usuario (usado por el CRUD básico)
-V    */
+
     async update(id, username, email, passwordHash) {
         let updates = [];
         let params = [];

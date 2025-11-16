@@ -9,7 +9,7 @@ import ProtectedRoute from './components/layout/ProtectedRoute';
 import ColegioProfilePage from './pages/ColegioProfilePage';
 
 const Navigation = () => {
-    const { isAuthenticated, logout, user } = useAuth(); // 'user' ahora tiene 'role'
+    const { isAuthenticated, logout, user } = useAuth(); 
 
     return (
         <nav>
@@ -23,7 +23,7 @@ const Navigation = () => {
                 <>
                     <Link to="/dashboard">Dashboard</Link>
                     
-                    {/* --- LÓGICA DE ROLES --- */}
+
                     {user?.role === 'COLEGIO_ADMIN' && (
                         <>
                             <Link to="/manage-users">Gestionar Usuarios</Link>
@@ -38,7 +38,7 @@ const Navigation = () => {
                     {user?.role === 'ESTUDIANTE' && (
                         <Link to="/menu">Ver Menú</Link>
                     )}
-                    {/* --- FIN LÓGICA DE ROLES --- */}
+
                     
                     <span>Welcome, {user?.username} ({user?.role})</span>
                     <button onClick={logout}>Logout</button>
@@ -64,14 +64,14 @@ const App = () => {
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/register" element={<RegisterPage />} />
                     
-                    {/* Rutas Protegidas */}
+
                     <Route element={<ProtectedRoute />}>
                         <Route path="/dashboard" element={<DashboardPage />} />
-                        {/* Rutas solo para COLEGIO_ADMIN */}
+
                         <Route path="/manage-users" element={<UserManagementPage />} />
                         <Route path="/manage-colegio" element={<ColegioProfilePage />} />
                         
-                        {/* (Aquí irían las rutas de Cafeteria y Estudiante) */}
+
                     </Route>
                 </Routes>
             </div>
