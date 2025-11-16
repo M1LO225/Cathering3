@@ -6,15 +6,12 @@ class AuthController {
 
     async register(req, res) {
         try {
-            // El body espera el 'telefono', 'nombre', etc. al mismo nivel
             const { username, email, password, nombre, direccion, telefono, ciudad, provincia } = req.body;
 
             if (!username || !email || !password) {
                 return res.status(400).json({ error: 'Datos de usuario (username, email, password) incompletos.' });
             }
             
-            // (La validación de 'nombre' y 'telefono' ya la hizo el middleware 'validateColegio')
-
             const userData = { username, email, password };
             const colegioData = { nombre, direccion, telefono, ciudad, provincia };
 
@@ -38,10 +35,14 @@ class AuthController {
         try {
             const { usernameOrEmail, password } = req.body;
             const result = await this.loginUser.execute(usernameOrEmail, password);
+            
+            // (MODIFICACIÓN)
+            // Ahora devolvemos 'result.user' directamente,
+            // que es el objeto { id, username, role, colegio_id }
             res.status(200).json({ 
                 message: 'Login successful.',
                 token: result.token,
-                user: { id: result.user.id, username: result.user.username }
+                user: result.user 
             });
         } catch (error) {
             console.error('Login Error Interno:', error); 

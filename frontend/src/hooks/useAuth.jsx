@@ -5,7 +5,7 @@ import ColegioService from '../services/ColegioService';
 
 const AuthContext = createContext();
 
-// Función de parseo de JWT mejorada
+// Función de parseo de JWT (CORREGIDA)
 const parseJwt = (token) => {
     try {
         if (!token) return null;
@@ -14,15 +14,17 @@ const parseJwt = (token) => {
         const jsonPayload = decodeURIComponent(atob(base64).split("").map(function(c) {
             return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
         }).join(""));
-        
-        const decoded = JSON.parse(jsonPayload);
-        // Asumimos que el payload tiene 'userId', 'username', 'role' y 'colegio_id'
-        return {
-            id: decoded.userId,
-            username: decoded.username,
-            role: decoded.role,
-            colegio_id: decoded.colegio_id
-        };
+        
+        const decoded = JSON.parse(jsonPayload);
+        
+        // AHORA INCLUIMOS 'exp'
+        return {
+            id: decoded.userId,
+            username: decoded.username,
+            role: decoded.role,
+            colegio_id: decoded.colegio_id,
+            exp: decoded.exp // <-- CAMBIO IMPORTANTE
+        };
     } catch (e) {
         console.error("Failed to parse JWT:", e);
         return null;
@@ -33,13 +35,11 @@ export const AuthProvider = ({ children }) => {
     const initialToken = localStorage.getItem('token');
     const [token, setToken] = useState(initialToken);
     const [user, setUser] = useState(parseJwt(initialToken)); 
-    const [loading, setLoading] = useState(true); 
+    const [loading, setLoading] = useState(true); // Debe empezar en true
 
     const authService = useMemo(() => new AuthService(), []);
-    
-    // Servicios que dependen del token
     const userService = useMemo(() => token ? new UserService(token) : null, [token]);
-    const colegioService = useMemo(() => token ? new ColegioService(token) : null, [token]);
+    const colegioService = useMemo(() => token ? new ColegioService(token) : null, [token]);
 
     const logout = () => {
         localStorage.removeItem('token');
@@ -47,30 +47,32 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
     };
 
-    // FUNCIÓN DE REGISTRO ACTUALIZADA
     const register = async (formData) => {
+        // (Tu función de registro está bien)
         setLoading(true);
         try {
-            // authService.register ahora espera el objeto completo
             const data = await authService.register(formData); 
-            // El backend ya no devuelve token/usuario en el registro, solo un mensaje
             setLoading(false);
-            return data; // Devuelve el mensaje de éxito
+            return data;
         } catch (error) {
             setLoading(false);
             throw error;
         }
     };
 
-    // FUNCIÓN DE LOGIN ACTUALIZADA
+    // FUNCIÓN DE LOGIN (CORREGIDA)
     const loginFn = async (usernameOrEmail, password) => {
         setLoading(true);
         try {
-            // authService.login guarda el token en localStorage
-            await authService.login(usernameOrEmail, password); 
+            // authService.login() devuelve el { user } y guarda el token
+            const userData = await authService.login(usernameOrEmail, password); 
             const newToken = localStorage.getItem('token');
-            setToken(newToken);
-            setUser(parseJwt(newToken)); // Parseamos el nuevo token
+            
+            // CAMBIO IMPORTANTE: Establecemos el usuario PRIMERO
+            setUser(userData); 
+            // AHORA establecemos el token (esto disparará el useEffect)
+            setToken(newToken); 
+
             setLoading(false);
             return true;
         } catch(error) {
@@ -79,35 +81,43 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    // useEffect (CORREGIDO)
     useEffect(() => {
-        setLoading(true);
+        setLoading(true);
         if (token) {
-            const parsedUser = parseJwt(token);
+            const parsedUser = parseJwt(token); // Ahora 'parsedUser' tiene 'exp'
             const currentTime = Date.now() / 1000;
-            
+            
             if (parsedUser && parsedUser.exp > currentTime) {
-                setUser(parsedUser); // Aseguramos que el estado 'user' tenga toda la info
+                // Si el estado 'user' está vacío (ej. al recargar la página),
+                // lo llenamos con los datos del token.
+                if (!user) {
+                    setUser(parsedUser);
+                }
             } else {
                 logout(); // Token expirado
             }
-        }
+        } else {
+            // Si no hay token, nos aseguramos de que el usuario sea nulo
+            setUser(null);
+        }
         setLoading(false);
-    }, [token]);
+    }, [token]); // Solo se ejecuta cuando el token cambia
 
     const contextValue = useMemo(() => ({
         token,
-        user, // <-- 'user' ahora contiene { id, username, role, colegio_id }
-        isAuthenticated: !!token,
+        user, 
+        isAuthenticated: !!user, // CAMBIO: Autenticado si hay objeto 'user'
         loading,
         login: loginFn,
         register,
         logout,
         authService,
         userService,
-        colegioService 
+        colegioService 
     }), [token, user, loading, authService, userService, colegioService, loginFn, register]);
 
-    
+    
     return (
         <AuthContext.Provider value={contextValue}>
             {children}
