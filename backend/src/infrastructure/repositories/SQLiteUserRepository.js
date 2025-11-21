@@ -1,122 +1,115 @@
-// src/infrastructure/repositories/SQLiteUserRepository.js
-
 const UserRepository = require('../../domain/repositories/UserRepository');
-const User = require('../../domain/entities/User');
-const { run, get, all } = require('./dbUtils'); 
+const UserModel = require('../models/UserModel');
+const ColegioModel = require('../models/ColegioModel');
+const sequelize = require('../config/database');
 
-class SQLiteUserRepository extends UserRepository {
-    constructor(db) {
-        super();
-        this.db = db;
-    }
+class SequelizeUserRepository extends UserRepository {
+    
 
+    _toDomain(sequelizeUser) {
+        if (!sequelizeUser) return null;
+        const u = sequelizeUser.toJSON();
 
-    async findById(id) {
-        const stmt = `SELECT id, username, passwordHash, email, role, colegio_id FROM users WHERE id = ?`;
-        const row = await get(this.db, stmt, [id]);
-        return row; 
-    }
+        return {
+            id: u.id,
+            username: u.username,
+            passwordHash: u.passwordHash,
+            email: u.email,
+            role: u.role,
+            colegio_id: u.colegio_id
+        };
+    }
 
-    async findByUsername(username) {
-        const row = await get(this.db, 'SELECT * FROM users WHERE username = ?', [username]);
-        if (!row) return null;
-        return new User(row.id, row.username, row.passwordHash, row.email);
-    }
+    async findById(id) {
+        const user = await UserModel.findByPk(id);
+        return this._toDomain(user);
+    }
 
+    async findByUsername(username) {
+        const user = await UserModel.findOne({ where: { username } });
+        return this._toDomain(user);
+    }
 
-    async findByEmail(email) {
-        const row = await get(this.db, 'SELECT * FROM users WHERE email = ?', [email]);
-        if (!row) return null;
-        return new User(row.id, row.username, row.passwordHash, row.email);
-    }
-
-
-    async save(user) {
-        const stmt = 'INSERT INTO users (username, passwordHash, email, createdAt) VALUES (?, ?, ?, DATETIME("now"))';
-        const { lastID } = await run(this.db, stmt, [user.username, user.passwordHash, user.email]);
-        user.id = lastID;
-        return user;
-    }
-    
-
-    async createColegioAdmin(user, colegioData) {
-        await run(this.db, 'BEGIN TRANSACTION');
-        try {
-            const { nombre, direccion, telefono, ciudad, provincia } = colegioData;
-            
-            const colegioStmt = `INSERT INTO colegios (nombre, direccion, telefono, ciudad, provincia, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, DATETIME("now"), DATETIME("now"))`;
-            const { lastID: colegioId } = await run(this.db, colegioStmt, [nombre, direccion, telefono, ciudad, provincia]);
-
-            const userStmt = `INSERT INTO users (username, passwordHash, email, role, colegio_id, createdAt, updatedAt) VALUES (?, ?, ?, 'COLEGIO_ADMIN', ?, DATETIME("now"), DATETIME("now"))`;
-            const { lastID: userId } = await run(this.db, userStmt, [user.username, user.passwordHash, user.email, colegioId]);
-
-            await run(this.db, 'COMMIT');
-            
-            user.id = userId;
-            user.colegio_id = colegioId;
-            return user;
-
-        } catch (err) {
-            await run(this.db, 'ROLLBACK');
-            console.error('Error en transacción createColegioAdmin:', err);
-            
-            if (err.message.includes('UNIQUE constraint')) {
-                 throw new Error('El username o email ya existe.');
-            }
-            throw new Error('Error al registrar el colegio y admin.');
-        }
-    }
+    async findByEmail(email) {
+        const user = await UserModel.findOne({ where: { email } });
+        return this._toDomain(user);
+    }
 
 
-    async saveWithRole(user) { // user = { username, passwordHash, email, role, colegio_id }
-        const stmt = `INSERT INTO users (username, passwordHash, email, role, colegio_id, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, DATETIME("now"), DATETIME("now"))`;
-        const { lastID } = await run(this.db, stmt, [
-            user.username, 
-            user.passwordHash, 
-            user.email, 
-            user.role, 
-            user.colegio_id
-        ]);
-        user.id = lastID;
-        return user;
-    }
+    async save(user) {
+        const newUser = await UserModel.create({
+            username: user.username,
+            email: user.email,
+            passwordHash: user.passwordHash,
+            role: user.role || 'ESTUDIANTE'
+        });
+        return this._toDomain(newUser);
+    }
 
 
-    async findAll() {
-        const stmt = `SELECT id, username, email, role, colegio_id, createdAt FROM users ORDER BY id DESC`;
-        return all(this.db, stmt);
-    }
+    async saveWithRole(user) {
+        const newUser = await UserModel.create({
+            username: user.username,
+            email: user.email,
+            passwordHash: user.passwordHash,
+            role: user.role,
+            colegio_id: user.colegio_id
+        });
+        return this._toDomain(newUser);
+    }
 
 
+    async createColegioAdmin(user, colegioData) {
+        const t = await sequelize.transaction(); 
 
-    async delete(id) {
-        const stmt = `DELETE FROM users WHERE id = ?`;
-        await run(this.db, stmt, [id]);
-        return true;
-    }
+        try {
+
+            const newColegio = await ColegioModel.create(colegioData, { transaction: t });
 
 
-    async update(id, username, email, passwordHash) {
-        let updates = [];
-        let params = [];
-        
-        if (username) { updates.push('username = ?'); params.push(username); }
-        if (email) { updates.push('email = ?'); params.push(email); }
-        if (passwordHash) { updates.push('passwordHash = ?'); params.push(passwordHash); }
-        
-        if (updates.length === 0) { 
-            return this.findById(id);
-        }
+            const newAdmin = await UserModel.create({
+                username: user.username,
+                email: user.email,
+                passwordHash: user.passwordHash,
+                role: 'COLEGIO_ADMIN',
+                colegio_id: newColegio.id
+            }, { transaction: t });
 
-        updates.push('updatedAt = DATETIME("now")');
 
-        const stmt = `UPDATE users SET ${updates.join(', ')} WHERE id = ?`;
-        params.push(id);
-        
-        await run(this.db, stmt, params);
+            await t.commit();
 
-        return this.findById(id); 
-    }
+
+            const result = this._toDomain(newAdmin);
+            result.colegio_id = newColegio.id;
+            return result;
+
+        } catch (error) {
+            await t.rollback();
+            console.error("Error en transacción Sequelize:", error);
+            throw new Error("No se pudo registrar el colegio y el administrador.");
+        }
+    }
+
+    async findAll() {
+        const users = await UserModel.findAll({
+            order: [['id', 'DESC']]
+        });
+        return users.map(u => this._toDomain(u));
+    }
+
+    async delete(id) {
+        return await UserModel.destroy({ where: { id } });
+    }
+
+    async update(id, username, email, passwordHash) {
+        const updateData = {};
+        if (username) updateData.username = username;
+        if (email) updateData.email = email;
+        if (passwordHash) updateData.passwordHash = passwordHash;
+
+        await UserModel.update(updateData, { where: { id } });
+        return this.findById(id);
+    }
 }
 
-module.exports = SQLiteUserRepository;
+module.exports = SequelizeUserRepository;

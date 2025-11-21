@@ -1,38 +1,32 @@
-// src/infrastructure/repositories/SQLiteColegioRepository.js
 const ColegioRepository = require('../../domain/repositories/ColegioRepository');
-const { get, run } = require('./dbUtils');
+const ColegioModel = require('../models/ColegioModel');
 
-class SQLiteColegioRepository extends ColegioRepository {
-    constructor(db) {
-        super();
-        this.db = db;
-    }
+class SequelizeColegioRepository extends ColegioRepository {
+    
 
-    async findById(id) {
-        const stmt = `SELECT id, nombre, direccion, telefono, ciudad, provincia FROM colegios WHERE id = ?`;
-        const row = await get(this.db, stmt, [id]);
-        return row;
-    }
+    _toDomain(sequelizeColegio) {
+        if (!sequelizeColegio) return null;
+        return sequelizeColegio.toJSON();
+    }
 
-    async update(id, data) {
-        const { nombre, direccion, telefono, ciudad, provincia } = data;
-        
-        const stmt = `
-            UPDATE colegios 
-            SET 
-                nombre = ?, 
-                direccion = ?, 
-                telefono = ?, 
-                ciudad = ?, 
-                provincia = ?, 
-                updatedAt = DATETIME("now")
-            WHERE id = ?
-        `;
-        
-        await run(this.db, stmt, [nombre, direccion, telefono, ciudad, provincia, id]);
-        
-        return this.findById(id);
-    }
+    async findById(id) {
+        const colegio = await ColegioModel.findByPk(id);
+        return this._toDomain(colegio);
+    }
+
+    async update(id, data) {
+        const { nombre, direccion, telefono, ciudad, provincia } = data;
+        
+
+        await ColegioModel.update({
+            nombre, direccion, telefono, ciudad, provincia
+        }, {
+            where: { id }
+        });
+
+
+        return this.findById(id);
+    }
 }
 
-module.exports = SQLiteColegioRepository;
+module.exports = SequelizeColegioRepository;
