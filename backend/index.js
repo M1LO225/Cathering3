@@ -3,87 +3,109 @@ require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const path = require('path');
 
-// 1. Configuración de Infraestructura
-// 'db' ahora es la instancia de Sequelize configurada en database.js
-const db = require('./src/infrastructure/config/database'); 
+// 1. Configuración de Infraestructura y DB
+const db = require('./src/infrastructure/config/database');
+// IMPORTANTE: Cargar las asociaciones antes de sincronizar
+require('./src/infrastructure/config/associations');
 
+// --- Repositorios (Sequelize) --- //
 const SequelizeUserRepository = require('./src/infrastructure/repositories/SQLiteUserRepository');
-// Nota: Deberías refactorizar el repositorio de Colegio igual que hicimos con el de Usuario
 const SequelizeColegioRepository = require('./src/infrastructure/repositories/SQLiteColegioRepository');
+const SequelizeProductRepository = require('./src/infrastructure/repositories/SequelizeProductRepository');
+const SequelizeIngredientRepository = require('./src/infrastructure/repositories/SequelizeIngredientRepository');
 
-// --- Componentes Existentes (Auth) ---
+// --- Middlewares --- //
+const AuthMiddleware = require('./src/infrastructure/middlewares/AuthMiddleware');
+
+// --- Controladores y Casos de Uso --- //
+
+// > Auth & User
 const authRoutes = require('./src/infrastructure/routes/auth.routes');
 const AuthController = require('./src/infrastructure/controllers/AuthController');
-const AuthMiddleware = require('./src/infrastructure/middlewares/AuthMiddleware');
 const RegisterUser = require('./src/application/use-cases/RegisterUser'); 
 const LoginUser = require('./src/application/use-cases/LoginUser');
 
-// --- Componentes CRUD Usuarios ---
 const userRoutes = require('./src/infrastructure/routes/user.routes');
 const GetAllUsers = require('./src/application/use-cases/GetAllUsers'); 
 const UpdateUser = require('./src/application/use-cases/UpdateUser'); 
 const DeleteUser = require('./src/application/use-cases/DeleteUser'); 
 
-// --- Componentes CRUD Colegio ---
+// > Colegio
 const colegioRoutes = require('./src/infrastructure/routes/colegio.routes');
 const ColegioController = require('./src/infrastructure/controllers/ColegioController');
 const GetColegioDetails = require('./src/application/use-cases/GetColegioDetails');
 const UpdateColegioDetails = require('./src/application/use-cases/UpdateColegioDetails');
 
-// --- INYECCIÓN DE DEPENDENCIAS ---
+// > Productos (Cafetería)
+const productRoutes = require('./src/infrastructure/routes/product.routes');
+const ProductController = require('./src/infrastructure/controllers/ProductController');
+const CreateProduct = require('./src/application/use-cases/CreateProduct');
+const GetMenu = require('./src/application/use-cases/GetMenu');
 
-// Repositorios (Ya no necesitan 'db' en el constructor con Sequelize)
-const userRepository = new SequelizeUserRepository(); 
+// --- INYECCIÓN DE DEPENDENCIAS --- //
+
+// Instancias de Repositorios
+const userRepository = new SequelizeUserRepository();
 const colegioRepository = new SequelizeColegioRepository();
+const productRepository = new SequelizeProductRepository();
+const ingredientRepository = new SequelizeIngredientRepository();
 
-// Casos de Uso de Autenticación
+// Instancias de Casos de Uso
 const registerUser = new RegisterUser(userRepository); 
 const loginUser = new LoginUser(userRepository);
-const authController = new AuthController(registerUser, loginUser);
-
-// Casos de Uso de CRUD de Usuarios
 const getAllUsers = new GetAllUsers(userRepository); 
 const updateUser = new UpdateUser(userRepository);     
-const deleteUser = new DeleteUser(userRepository);   
-
-// Casos de Uso de CRUD de Colegio
+const deleteUser = new DeleteUser(userRepository); 
 const getColegioDetails = new GetColegioDetails(colegioRepository);
 const updateColegioDetails = new UpdateColegioDetails(colegioRepository);
-const colegioController = new ColegioController(getColegioDetails, updateColegioDetails);
+const createProduct = new CreateProduct(productRepository, ingredientRepository);
+const getMenu = new GetMenu(productRepository);
 
-// --- CONFIGURACIÓN DE EXPRESS ---
+// Instancias de Controladores
+const authController = new AuthController(registerUser, loginUser);
+const colegioController = new ColegioController(getColegioDetails, updateColegioDetails);
+const productController = new ProductController(createProduct, getMenu);
+
+// --- CONFIGURACIÓN DE EXPRESS --- //
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors()); 
 app.use(bodyParser.json());
 
+// SERVIR IMÁGENES ESTÁTICAS
+// Esto permite acceder a http://localhost:3000/uploads/imagen.jpg
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// --- RUTAS ---//
+
+// 1. Auth
 app.use('/api/auth', authRoutes(authController));
 
-
+// 2. Usuarios (Gestión Admin)
 app.use('/api/users', userRoutes(
-    { getAllUsers, updateUser, deleteUser, userRepository }, 
-    AuthMiddleware
+    { getAllUsers, updateUser, deleteUser, userRepository }, 
+    AuthMiddleware
 )); 
 
-
+// 3. Colegio (Gestión Admin)
 app.use('/api/colegio', colegioRoutes(colegioController)); 
 
+// 4. Productos (Gestión Cafetería / Ver Estudiante)
+app.use('/api/products', productRoutes(productController));
 
-app.get('/api/protected/data', AuthMiddleware, (req, res) => {
-    res.json({ 
-        message: `Welcome user ${req.userId}! This is protected data.`,
-        data: "The secret content.",
-        userProfile: req.user 
-    });
+// Test Route
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'OK', server: 'App Cathering Backend' });
 });
 
-
-db.sync({ force: false })
+// --- ARRANQUE DEL SERVIDOR ---
+// Sincroniza modelos con la BD y luego inicia
+db.sync({ force: false }) // force: false mantiene los datos. Usa true si quieres resetear todo al iniciar.
   .then(() => {
-      console.log("Base de datos sincronizada con Sequelize.");
+      console.log("Base de datos sincronizada (Sequelize).");
       app.listen(PORT, () => {
           console.log(`Server running on port ${PORT}`);
       });

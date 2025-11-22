@@ -4,14 +4,10 @@ const IngredientModel = require('../models/IngredientModel');
 class SequelizeProductRepository {
 
     async create(productData, ingredientIds) {
-        // 1. Crear el producto base
         const newProduct = await ProductModel.create(productData);
-
-        // 2. Asociar ingredientes (Magia de Sequelize: setIngredientes)
         if (ingredientIds && ingredientIds.length > 0) {
             await newProduct.setIngredientes(ingredientIds);
         }
-
         return newProduct;
     }
 
@@ -21,13 +17,58 @@ class SequelizeProductRepository {
             include: [
                 {
                     model: IngredientModel,
-                    as: 'ingredientes', // Debe coincidir con el alias en associations.js
-                    through: { attributes: [] } // No traer datos de la tabla pivote
+                    as: 'ingredientes',
+                    through: { attributes: [] }
                 }
             ]
         });
     }
-    
+
+    async findById(id) {
+        return await ProductModel.findByPk(id, {
+            include: [{ model: IngredientModel, as: 'ingredientes' }]
+        });
+    }
+
+    /**
+      Actualiza producto y sus ingredientes.
+      Si ingredientIds es null, no toca los ingredientes.
+     */
+    async update(id, productData, ingredientIds) {
+        const product = await ProductModel.findByPk(id);
+        if (!product) return null;
+
+        // Actualizar campos básicos (precio, stock, nombre, etc.)
+        await product.update(productData);
+
+        // Actualizar relaciones si se proporcionan
+        if (ingredientIds) {
+            await product.setIngredientes(ingredientIds);
+        }
+
+        // Devolver producto actualizado
+        return this.findById(id);
+    }
+
+    /*
+      Actualización rápida solo de stock (útil para ventas)
+    */
+    async updateStock(id, quantity) {
+        const product = await ProductModel.findByPk(id);
+        if (!product) return null;
+        
+        // quantity puede ser negativo (venta) o positivo (reposición)
+        const newStock = product.stock + quantity;
+        if (newStock < 0) throw new Error("Stock insuficiente");
+
+        await product.update({ stock: newStock });
+        return product;
+    }
+
+    async delete(id) {
+        // Sequelize borra automáticamente las relaciones en la tabla pivote
+        return await ProductModel.destroy({ where: { id } });
+    }
 }
 
 module.exports = SequelizeProductRepository;
