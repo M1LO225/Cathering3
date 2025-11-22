@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useMemo, useEffect } from '
 import AuthService from '../services/auth.service';
 import UserService from '../services/UserService';
 import ColegioService from '../services/ColegioService'; 
+import ProductService from '../services/ProductService';
 
 const AuthContext = createContext();
 
@@ -40,6 +41,8 @@ export const AuthProvider = ({ children }) => {
     const authService = useMemo(() => new AuthService(), []);
     const userService = useMemo(() => token ? new UserService(token) : null, [token]);
     const colegioService = useMemo(() => token ? new ColegioService(token) : null, [token]);
+    const productService = useMemo(() => token ? new ProductService(token) : null, [token]);
+    
 
     const logout = () => {
         localStorage.removeItem('token');
@@ -113,8 +116,9 @@ export const AuthProvider = ({ children }) => {
         logout,
         authService,
         userService,
-        colegioService 
-    }), [token, user, loading, authService, userService, colegioService, loginFn, register]);
+        colegioService,
+        productService 
+    }), [token, user, loading, authService, userService, colegioService, productService, loginFn, register]);
 
     
     return (
