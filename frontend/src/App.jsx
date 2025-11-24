@@ -9,6 +9,7 @@ import ProtectedRoute from './components/layout/ProtectedRoute';
 import ColegioProfilePage from './pages/ColegioProfilePage';
 import CafeteriaDashboard from './pages/CafeteriaDashboard';
 import StudentMenuPage from './pages/StudentMenuPage'; 
+import StudentAllergiesPage from './pages/StudentAllergiesPage';
 
 const Navigation = () => {
     const { isAuthenticated, logout, user } = useAuth(); 
@@ -38,7 +39,10 @@ const Navigation = () => {
                     )}
 
                     {user?.role === 'ESTUDIANTE' && (
+                        <>
                         <Link to="/menu">Ver Menú</Link>
+                        <Link to="/allergies">Mis Alergias</Link>
+                        </>
                     )}
 
                     
@@ -54,7 +58,7 @@ const App = () => {
     const { loading } = useAuth();
 
     if (loading) {
-         return <div style={{ textAlign: 'center', padding: '50px' }}>Cargando sesión...</div>;
+        return <div style={{ textAlign: 'center', padding: '50px' }}>Cargando sesión...</div>;
     }
 
     return (
@@ -73,7 +77,7 @@ const App = () => {
                         <Route path="/menu" element={<StudentMenuPage />} />
                         <Route path="/manage-users" element={<UserManagementPage />} />
                         <Route path="/manage-colegio" element={<ColegioProfilePage />} />
-                        
+                        <Route path="/allergies" element={<StudentAllergiesPage />} />
 
                     </Route>
                 </Routes>

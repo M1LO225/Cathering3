@@ -64,6 +64,30 @@ class UserService {
         }
         return { success: true }; 
     }
+
+    async getAllIngredients() {
+        const response = await fetch(`${API_BASE_URL}/products/ingredients`, {
+            headers: this.headers,
+        });
+        return this._handleResponse(response)
+    }
+
+    async getMyAllergies() {
+        const response = await fetch(`${API_BASE_URL}/auth/allergies`, {
+            headers: this.headers,
+        });
+        return this._handleResponse(response);
+    }
+
+    async updateMyAllergies(ingredientIds) {
+        const response = await fetch(`${API_BASE_URL}/auth/allergies`, {
+            method: 'POST',
+            headers: this.headers,
+            body: JSON.stringify({ ingredientIds }),
+        });
+        return this._handleResponse(response);
+    }
+
 }
 
 export default UserService;

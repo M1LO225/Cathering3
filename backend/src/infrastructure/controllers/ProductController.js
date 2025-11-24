@@ -1,3 +1,5 @@
+const { parse } = require("dotenv");
+
 class ProductController {
     constructor(createProduct, getMenu) {
         this.createProduct = createProduct;
@@ -20,18 +22,15 @@ class ProductController {
             let parsedIngredients = [];
             if (ingredientes) {
                 try {
-                    // Intentamos parsear si viene como JSON array string
                     parsedIngredients = JSON.parse(ingredientes);
                 } catch (e) {
-                    // Si falla, asumimos que es un solo ingrediente o texto plano, lo convertimos en array
+                    if (typeof ingredientes === 'string') {
+                        parsedIngredients = ingredientes.split(',').map(id => id.trim());
+                } else {
                     parsedIngredients = [ingredientes];
-                }
-                
-                // Asegurarnos de que sea un array de strings
-                if (!Array.isArray(parsedIngredients)) {
-                     parsedIngredients = [parsedIngredients.toString()];
-                }
             }
+        }
+    }
 
             const productData = {
                 nombre,
@@ -64,6 +63,16 @@ class ProductController {
         } catch (error) {
             console.error('Error obteniendo menú:', error);
             res.status(500).json({ error: 'Error interno al obtener el menú.' });
+        }
+    }
+
+    async listIngredients(req, res) {
+        try {
+            const ingredients = await this.ingredientRepository.findAll();
+            res.status(200).json(ingredients);
+        }catch (error) {
+            console.error('Error obteniendo ingredientes:', error);
+            res.status(500).json({ error: 'Error interno al obtener los ingredientes.' });
         }
     }
 }

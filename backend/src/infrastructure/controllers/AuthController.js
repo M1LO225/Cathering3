@@ -36,9 +36,7 @@ class AuthController {
             const { usernameOrEmail, password } = req.body;
             const result = await this.loginUser.execute(usernameOrEmail, password);
             
-            // (MODIFICACIÓN)
-            // Ahora devolvemos 'result.user' directamente,
-            // que es el objeto { id, username, role, colegio_id }
+            
             res.status(200).json({ 
                 message: 'Login successful.',
                 token: result.token,
@@ -52,6 +50,29 @@ class AuthController {
             return res.status(500).json({ error: 'Internal server error during login.' });
         }
     }
+
+async getMyAllergies(req, res) {
+        try{
+            const userId = req.user.id;
+            const allergies = await this.userRepository.getUserAllergies(userId);
+            res.json(allergies);
+        } catch (error) {
+            console.error('Error obteniendo alergias del usuario:', error);
+            res.status(500).json({ error: 'Error interno al obtener las alergias del usuario.' });
+        }
+    }
+
+async updateMyAllergies(req, res) {
+        try {
+            const userId = req.user.id;
+            const { ingredientIds } = req.body;
+            
+            await this.userRepository.updateAllergies(userId, ingredientIds);
+            res.json({ message: "Alergias actualizadas correctamente." });
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    }
 }
 
 module.exports = AuthController;

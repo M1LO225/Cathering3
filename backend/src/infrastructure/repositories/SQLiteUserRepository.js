@@ -2,6 +2,7 @@ const UserRepository = require('../../domain/repositories/UserRepository');
 const UserModel = require('../models/UserModel');
 const ColegioModel = require('../models/ColegioModel');
 const sequelize = require('../config/database');
+const IngredientModel = require('../models/IngredientModel');
 
 class SequelizeUserRepository extends UserRepository {
     
@@ -110,6 +111,27 @@ class SequelizeUserRepository extends UserRepository {
         await UserModel.update(updateData, { where: { id } });
         return this.findById(id);
     }
+
+    async getUserAllergies(userId) {
+        const user = await UserModel.findByPk(userId, {
+            include: [
+            {
+            model: IngredientModel,
+            as: 'alergias',
+            through: { attributes: [] }
+        }
+    ]
+        });
+        return user ? user.alergias : [];
+    }
+
+    async updateAllergies (userId, ingredientIds) {
+        const user = await UserModel.findByPk(userId);
+        if (!user) throw new Error('Usuario no encontrado');
+        await user.setAlergias(ingredientIds);
+        return this.getUserAllergies(userId);
+    }
+        
 }
 
 module.exports = SequelizeUserRepository;

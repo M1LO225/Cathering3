@@ -65,8 +65,10 @@ const getMenu = new GetMenu(productRepository);
 
 // Instancias de Controladores
 const authController = new AuthController(registerUser, loginUser);
+authController.userRepository = userRepository;
 const colegioController = new ColegioController(getColegioDetails, updateColegioDetails);
 const productController = new ProductController(createProduct, getMenu);
+productController.ingredientRepository = ingredientRepository;
 
 // --- CONFIGURACIÓN DE EXPRESS --- //
 const app = express();
@@ -104,12 +106,12 @@ app.get('/api/health', (req, res) => {
 // --- ARRANQUE DEL SERVIDOR ---
 // Sincroniza modelos con la BD y luego inicia
 db.sync({ force: false }) // force: false mantiene los datos. Usa true si quieres resetear todo al iniciar.
-  .then(() => {
-      console.log("Base de datos sincronizada (Sequelize).");
-      app.listen(PORT, () => {
-          console.log(`Server running on port ${PORT}`);
-      });
-  })
-  .catch((err) => {
-      console.error("Error al sincronizar base de datos:", err);
-  });
+.then(() => {
+    console.log("Base de datos sincronizada (Sequelize).");
+    app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+    });
+})
+.catch((err) => {
+    console.error("Error al sincronizar base de datos:", err);
+});
