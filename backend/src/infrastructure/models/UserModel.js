@@ -1,6 +1,5 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
-const ColegioModel = require('./ColegioModel');
 
 const UserModel = sequelize.define('User', {
     id: {
@@ -33,18 +32,12 @@ const UserModel = sequelize.define('User', {
 
     colegio_id: {
         type: DataTypes.INTEGER,
-        references: {
-            model: ColegioModel,
-            key: 'id'
-        }
+
     }
 }, {
     tableName: 'users',
     timestamps: true
 });
 
-
-ColegioModel.hasMany(UserModel, { foreignKey: 'colegio_id', as: 'usuarios' });
-UserModel.belongsTo(ColegioModel, { foreignKey: 'colegio_id', as: 'colegio' });
 
 module.exports = UserModel;

@@ -34,8 +34,7 @@ IngredientModel.belongsToMany(ProductModel, {
     as: 'productos'
 });
 
-// 6. Usuario (Alergias) <-> Ingredientes (N a N) - Reutilizamos el modelo Ingredient
-// Creamos una tabla pivote automática 'UserAllergies'
+
 UserModel.belongsToMany(IngredientModel, { 
     through: 'UserAllergies', 
     foreignKey: 'user_id',

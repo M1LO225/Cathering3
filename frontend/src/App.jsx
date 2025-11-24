@@ -7,6 +7,8 @@ import DashboardPage from './pages/DashboardPage';
 import UserManagementPage from './pages/UserManagementPage';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 import ColegioProfilePage from './pages/ColegioProfilePage';
+import CafeteriaDashboard from './pages/CafeteriaDashboard';
+import StudentMenuPage from './pages/StudentMenuPage'; 
 
 const Navigation = () => {
     const { isAuthenticated, logout, user } = useAuth(); 
@@ -67,7 +69,8 @@ const App = () => {
 
                     <Route element={<ProtectedRoute />}>
                         <Route path="/dashboard" element={<DashboardPage />} />
-
+                        <Route path="/manage-menu" element={<CafeteriaDashboard />} />
+                        <Route path="/menu" element={<StudentMenuPage />} />
                         <Route path="/manage-users" element={<UserManagementPage />} />
                         <Route path="/manage-colegio" element={<ColegioProfilePage />} />
                         

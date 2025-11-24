@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import Input from '../common/Input';
 import Button from '../common/Button';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 
 const LoginForm = () => {
     const [formData, setFormData] = useState({
@@ -28,14 +28,19 @@ const LoginForm = () => {
         setLoginError(null); 
         
         try {
-     
-            await login(
-                formData.usernameOrEmail, 
+            const user = await login(
+                formData.usernameOrEmail,
                 formData.password
             );
-
-           
-            navigate('/manage-users'); 
+            if (user.role === 'COLEGIO_ADMIN') {
+                navigate('/manage-users');
+            }else if (user.role === 'CAFETERIA'){
+                navigate('/manage-menu');
+            }else if (user.role === 'ESTUDIANTE'){
+                navigate('/menu');
+            } else {
+                navigate('/dashboard'); // Fallback por si acaso
+            }
 
         } catch (error) {
     

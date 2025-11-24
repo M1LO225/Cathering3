@@ -77,7 +77,7 @@ export const AuthProvider = ({ children }) => {
             setToken(newToken); 
 
             setLoading(false);
-            return true;
+            return userData;
         } catch(error) {
             setLoading(false);
             throw error;
