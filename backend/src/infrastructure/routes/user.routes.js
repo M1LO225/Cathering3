@@ -44,13 +44,16 @@ const UserRoutes = (useCases, AuthMiddleware) => {
    
         async listUsers(req, res) {
             try {
-   
-                const users = await getAllUsers.execute();
+                    const colegioId = req.user.colegio_id;
+                    if(!colegioId){
+                        return res.status(400).json({ error: 'Usuario no pertenece a ningun colegio' });
+                    }
+                    const users = await getAllUsers.execute(colegioId);
                 res.status(200).json(users);
             } catch (error) {
-                console.error('Error listing users:', error);
-                res.status(500).json({ error: error.message || 'Error al listar usuarios.' });
-            }
+                console.error('Error getting users:', error);
+                res.status(500).json({ error: 'Error interno al obtener usuarios.' });
+                }
         }
         
 

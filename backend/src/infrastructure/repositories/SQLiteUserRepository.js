@@ -91,8 +91,13 @@ class SequelizeUserRepository extends UserRepository {
         }
     }
 
-    async findAll() {
+    async findAll(colegioId) {
+        const whereClause = {};
+        if (colegioId) {
+            whereClause.colegio_id = colegioId;
+        }
         const users = await UserModel.findAll({
+            where : whereClause,
             order: [['id', 'DESC']]
         });
         return users.map(u => this._toDomain(u));

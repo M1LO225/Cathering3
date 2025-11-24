@@ -6,10 +6,10 @@ class GetAllUsers {
     }
 
 
-    async execute() {
+    async execute(colegioId) {
         try {
  
-            const users = await this.userRepository.findAll();
+            const users = await this.userRepository.findAll(colegioId);
             return users;
         } catch (error) {
             console.error('Error al obtener todos los usuarios:', error);
