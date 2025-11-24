@@ -65,9 +65,11 @@ class SequelizeProductRepository {
         return product;
     }
 
-    async delete(id) {
-        // Sequelize borra automáticamente las relaciones en la tabla pivote
-        return await ProductModel.destroy({ where: { id } });
+    async delete(id, colegioId) {
+        const deletedCount = await ProductModel.destroy({
+            where: { id, colegio_id: colegioId }
+        });
+        return deletedCount > 0;
     }
 }
 

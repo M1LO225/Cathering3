@@ -1,9 +1,10 @@
 const { parse } = require("dotenv");
 
 class ProductController {
-    constructor(createProduct, getMenu) {
+    constructor(createProduct, getMenu, deleteProduct) {
         this.createProduct = createProduct;
         this.getMenu = getMenu;
+        this.deleteProduct = deleteProduct;
     }
 
     async create(req, res) {
@@ -73,6 +74,22 @@ class ProductController {
         }catch (error) {
             console.error('Error obteniendo ingredientes:', error);
             res.status(500).json({ error: 'Error interno al obtener los ingredientes.' });
+        }
+    }
+
+    async delete(req, res) {
+        try {
+            const productId = req.params.id;
+            const colegioId = req.user.colegio_id; // Obtenido del token seguro
+
+            await this.deleteProduct.execute(productId, colegioId);
+
+            res.status(200).json({ message: "Producto eliminado correctamente." });
+        } catch (error) {
+            console.error('Error eliminando producto:', error);
+            // Si es error de "no encontrado", devolvemos 404, si no 500
+            const status = error.message.includes("no encontrado") ? 404 : 500;
+            res.status(status).json({ error: error.message });
         }
     }
 }

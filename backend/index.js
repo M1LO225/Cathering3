@@ -43,6 +43,7 @@ const productRoutes = require('./src/infrastructure/routes/product.routes');
 const ProductController = require('./src/infrastructure/controllers/ProductController');
 const CreateProduct = require('./src/application/use-cases/CreateProduct');
 const GetMenu = require('./src/application/use-cases/GetMenu');
+const DeleteProduct = require('./src/application/use-cases/DeleteProduct');
 
 // --- INYECCIÓN DE DEPENDENCIAS --- //
 
@@ -62,13 +63,16 @@ const getColegioDetails = new GetColegioDetails(colegioRepository);
 const updateColegioDetails = new UpdateColegioDetails(colegioRepository);
 const createProduct = new CreateProduct(productRepository, ingredientRepository);
 const getMenu = new GetMenu(productRepository);
+const deleteProduct = new DeleteProduct(productRepository);
 
 // Instancias de Controladores
 const authController = new AuthController(registerUser, loginUser);
 authController.userRepository = userRepository;
 const colegioController = new ColegioController(getColegioDetails, updateColegioDetails);
-const productController = new ProductController(createProduct, getMenu);
+const productController = new ProductController(createProduct, getMenu, deleteProduct);
 productController.ingredientRepository = ingredientRepository;
+productController.deleteProduct = deleteProduct;
+
 
 // --- CONFIGURACIÓN DE EXPRESS --- //
 const app = express();

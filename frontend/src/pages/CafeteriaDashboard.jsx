@@ -64,6 +64,18 @@ const CafeteriaDashboard = () => {
         setNewProduct({...newProduct, [e.target.name]: e.target.value});
     };
 
+    const handleDelete = async (id) => {
+        if (!window.confirm("¿Estás seguro de que quieres eliminar este plato?")) return;
+
+        try {
+            await productService.deleteProduct(id);
+            alert("Producto eliminado");
+            fetchMenu(); // Recargar la lista para que desaparezca
+        } catch (error) {
+            alert(error.message);
+        }
+    };
+
     return (
         <div style={{ padding: '20px' }}>
             <h1>Panel de Cafetería - {user?.username}</h1>
@@ -107,6 +119,14 @@ const CafeteriaDashboard = () => {
                             <div style={{ fontSize: '0.85em', color: '#555' }}>
                                 <strong>Ingredientes:</strong> {p.ingredientes?.map(i => i.nombre).join(', ')}
                             </div>
+
+                            <Button 
+                                onClick={() => handleDelete(p.id)} 
+                                style={{ backgroundColor: '#d32f2f', width: '100%', fontSize: '0.9em' }}
+                            >
+                                Eliminar Plato
+                            </Button>
+                            
                         </div>
                     ))}
                 </div>

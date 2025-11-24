@@ -33,6 +33,19 @@ class ProductService {
         }
         return response.json();
     }
+
+    async deleteProduct(id) {
+        const response = await fetch(`${API_BASE_URL}/products/${id}`, {
+            method: 'DELETE',
+            headers: this.authHeader,
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Error al eliminar producto');
+        }
+        return true;
+    }
 }
 
 export default ProductService;
