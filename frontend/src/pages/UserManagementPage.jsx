@@ -41,23 +41,25 @@ const UserManagementPage = () => {
         setCreateForm({ ...createForm, [e.target.name]: e.target.value });
     };
 
-    const handleCreateUser = async (e) => {
-        e.preventDefault();
-        setError(null);
-        try {
+    const handleCreateUser = async (e) => {
+        e.preventDefault();
+        setError(null);
+        try {
             if (userTypeToCreate === 'ESTUDIANTE') {
-                await userService.createEstudianteUser(createForm);
-            } else {
+                await userService.createEstudianteUser(createForm);
+            } else if (userTypeToCreate === 'CAFETERIA') {
                 await userService.createCafeteriaUser(createForm);
+            } else {
+                await userService.createPersonalUser(createForm);
             }
-            alert(`Usuario ${createForm.username} (${userTypeToCreate}) creado!`);
-            setCreateForm({ username: "", email: "", password: "" });
+            alert(`Usuario ${createForm.username} (${userTypeToCreate}) creado!`);
+            setCreateForm({ username: "", email: "", password: "" });
             setIsCreating(false);
             fetchUsers();
-        } catch (err) {
-            setError(err.message);
-        }
-    };
+        } catch (err) {
+            setError(err.message);
+        }
+    };
 
     const handleDeleteUser = async (userId) => {
         if (!window.confirm(`¿Seguro que quieres eliminar al usuario ID ${userId}?`)) return;
@@ -88,11 +90,14 @@ const UserManagementPage = () => {
                     <div style={{ marginBottom: '10px' }}>
                         <label>Tipo de Usuario: </label>
                         <select 
+                            id="userType"
                             value={userTypeToCreate} 
                             onChange={(e) => setUserTypeToCreate(e.target.value)}
+                            style={{ width: '100%', padding: '10px', border: '1px solid #ccc', borderRadius: '4px' }}
                         >
                             <option value="ESTUDIANTE">Estudiante</option>
                             <option value="CAFETERIA">Cafetería</option>
+                            <option value="PERSONAL_ACADEMICO">Personal Académico</option>
                         </select>
                     </div>
                     <Input type="text" name="username" placeholder="Username" value={createForm.username} onChange={handleCreateFormChange} required />
