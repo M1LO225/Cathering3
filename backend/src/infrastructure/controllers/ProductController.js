@@ -9,29 +9,37 @@ class ProductController {
 
     async create(req, res) {
         try {
-            // req.file contiene la info de la imagen subida por Multer
-            // req.body contiene los campos de texto
-            
             const { nombre, descripcion, precio, stock, tiempo_prep, ingredientes } = req.body;
-            const colegioId = req.user.colegio_id; // Del token del usuario cafeteria
+            const colegioId = req.user.colegio_id; 
 
             if (!req.file) {
                 return res.status(400).json({ error: 'La imagen del producto es obligatoria.' });
             }
 
-            // Procesar ingredientes (vienen como string JSON "[...]" o string separado por comas)
             let parsedIngredients = [];
+            
             if (ingredientes) {
-                try {
-                    parsedIngredients = JSON.parse(ingredientes);
-                } catch (e) {
-                    if (typeof ingredientes === 'string') {
-                        parsedIngredients = ingredientes.split(',').map(id => id.trim());
+                // 1. Limpiamos el string (quitamos espacios al inicio/final)
+                const rawIngredientes = ingredientes.toString().trim();
+
+                // 2. Verificamos si intenta ser un JSON (ej: '["Pan", "Carne"]')
+                if (rawIngredientes.startsWith('[')) {
+                    try {
+                        parsedIngredients = JSON.parse(rawIngredientes);
+                    } catch (e) {
+                        // Si falla el JSON, lo tratamos como texto separado por comas
+                        parsedIngredients = rawIngredientes.split(',');
+                    }
                 } else {
-                    parsedIngredients = [ingredientes];
+                    // 3. CASO COMÚN: Texto separado por comas (ej: "Pan, Carne, Queso")
+                    parsedIngredients = rawIngredientes.split(',');
+                }
+
+                // 4. Limpieza final: Recorremos el array, quitamos espacios a cada palabra y filtramos vacíos
+                parsedIngredients = parsedIngredients
+                    .map(i => i.trim())        // " Queso " -> "Queso"
+                    .filter(i => i.length > 0); // Eliminar strings vacíos
             }
-        }
-    }
 
             const productData = {
                 nombre,
@@ -39,7 +47,7 @@ class ProductController {
                 precio: parseFloat(precio),
                 stock: parseInt(stock),
                 tiempo_prep: parseInt(tiempo_prep),
-                imagen_url: `/uploads/${req.file.filename}`, // Ruta relativa para servir
+                imagen_url: `/uploads/${req.file.filename}`,
                 colegio_id: colegioId
             };
 
