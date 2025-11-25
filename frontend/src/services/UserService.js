@@ -44,6 +44,15 @@ class UserService {
         return this._handleResponse(response);
     }
 
+    async createPersonalUser(userData) {
+        const response = await fetch(`${API_BASE_URL}/users/personal`, {
+            method: 'POST',
+            headers: this.headers,
+            body: JSON.stringify(userData),
+        });
+        return this._handleResponse(response);
+    }
+
     async updateUser(userId, updates) {
         const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
             method: 'PUT',

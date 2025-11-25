@@ -114,6 +114,14 @@ _     }
     router.put('/:id', isColegioAdmin, controller.update);     
     router.delete('/:id', isColegioAdmin, controller.delete);  
 
+    // Rutas de Gestión del Admin (Solo Admin puede acceder)
+    router.post('/cafeteria', isColegioAdmin, (req, res) => controller.createUserByAdmin(req, res, 'CAFETERIA'));
+    router.post('/estudiante', isColegioAdmin, (req, res) => controller.createUserByAdmin(req, res, 'ESTUDIANTE'));
+    
+    //Crear Personal Académico
+    router.post('/personal', isColegioAdmin, (req, res) => controller.createUserByAdmin(req, res, 'PERSONAL_ACADEMICO'));
+
+
     return router;
 };
 
