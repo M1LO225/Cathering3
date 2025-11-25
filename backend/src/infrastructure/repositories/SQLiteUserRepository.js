@@ -36,6 +36,16 @@ class SequelizeUserRepository extends UserRepository {
         return this._toDomain(user);
     }
 
+     //Busca un usuario por su rol dentro de un colegio específico.
+    async findOneByRoleAndColegio(role, colegioId) {
+        const user = await UserModel.findOne({
+            where: { 
+                role: role,
+                colegio_id: colegioId 
+            }
+        });
+        return this._toDomain(user);
+    }
 
     async save(user) {
         const newUser = await UserModel.create({
@@ -136,6 +146,8 @@ class SequelizeUserRepository extends UserRepository {
         await user.setAlergias(ingredientIds);
         return this.getUserAllergies(userId);
     }
+    
+
         
 }
 

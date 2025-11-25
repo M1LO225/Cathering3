@@ -8,39 +8,46 @@ const UserRoutes = (useCases, AuthMiddleware) => {
 
 
     class UserController {
-        
- 
-        async createUserByAdmin(req, res, roleToCreate) {
-            const { username, email, password } = req.body;
-            
-    
-            const adminUser = req.user;
-            const colegioId = adminUser.colegio_id;
+        async createUserByAdmin(req, res, roleToCreate) {
+            const { username, email, password } = req.body;
+            
+            const adminUser = req.user;
+            const colegioId = adminUser.colegio_id;
 
-            if (!username || !email || !password) {
-                return res.status(400).json({ error: 'Username, email y password son requeridos.' });
-            }
+            if (!username || !email || !password) {
+                return res.status(400).json({ error: 'Username, email y password son requeridos.' });
+            }
 
-            try {
-                const passwordHash = await EncryptService.hashPassword(password);
-                const newUser = { username, email, passwordHash, role: roleToCreate, colegio_id: colegioId };
-                
-                const createdUser = await userRepository.saveWithRole(newUser);
-                const { passwordHash: _, ...safeUser } = createdUser;
+            try {
+                // Verificar unicidad de la Cafetería
+                if (roleToCreate === 'CAFETERIA') {
+                    const existingCafeteria = await userRepository.findOneByRoleAndColegio('CAFETERIA', colegioId);
+                    
+                    if (existingCafeteria) {
+                        return res.status(400).json({ 
+                            error: 'Acción denegada: Este colegio ya tiene una Cafetería registrada. Solo se permite una.' 
+                        });
+                    }
+                }
 
-                res.status(201).json({ 
-                    message: `${roleToCreate} creado exitosamente.`,
-                    user: safeUser 
-                });
-            } catch (error) {
-                if (error.message.includes('UNIQUE')) {
-                    return res.status(409).json({ error: 'Username o email ya existe.' });
-                }
-                console.error('Error creating user:', error);
-                res.status(400).json({ error: error.message || 'Error al crear usuario.' });
-            }
-        }
-        
+                const passwordHash = await EncryptService.hashPassword(password);
+                const newUser = { username, email, passwordHash, role: roleToCreate, colegio_id: colegioId };
+                
+                const createdUser = await userRepository.saveWithRole(newUser);
+                const { passwordHash: _, ...safeUser } = createdUser;
+
+                res.status(201).json({ 
+                    message: `${roleToCreate} creado exitosamente.`,
+                    user: safeUser 
+                });
+            } catch (error) {
+                if (error.message.includes('UNIQUE')) {
+                    return res.status(409).json({ error: 'El nombre de usuario o email ya existe.' });
+                }
+                console.error('Error creating user:', error);
+                res.status(400).json({ error: error.message || 'Error al crear usuario.' });
+            }
+        }
    
         async listUsers(req, res) {
             try {
