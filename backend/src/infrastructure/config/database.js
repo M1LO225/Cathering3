@@ -16,12 +16,21 @@ if (process.env.NODE_ENV === 'production') {
         }
     });
 } else {
-
     const dbPath = path.resolve(__dirname, '..', '..', '..', 'data', 'auth.sqlite');
     sequelize = new Sequelize({
         dialect: 'sqlite',
         storage: dbPath,
-        logging: false 
+        logging: false,
+        retry: {
+            match: [/SQLITE_BUSY/], // Si ve este error
+            name: 'query',
+            max: 5 // Intenta 5 veces antes de fallar
+        },
+        pool: {
+            max: 1, // Forzar a usar solo una conexión a la vez para evitar bloqueos
+            min: 0,
+            idle: 10000
+        }
     });
 }
 
