@@ -9,7 +9,7 @@ import ProtectedRoute from './components/layout/ProtectedRoute';
 import ColegioProfilePage from './pages/ColegioProfilePage';
 import CafeteriaDashboard from './pages/CafeteriaDashboard';
 import StudentMenuPage from './pages/StudentMenuPage'; 
-import StudentAllergiesPage from './pages/StudentAllergiesPage';
+import AllergiesManager from './pages/AllergiesManager'; 
 
 const Navigation = () => {
     const { isAuthenticated, logout, user } = useAuth(); 
@@ -25,27 +25,29 @@ const Navigation = () => {
             ) : (
                 <>
                     <Link to="/dashboard">Dashboard</Link>
-                    
+                    
+                    {/* ROL: ADMIN DE COLEGIO */}
+                    {user?.role === 'COLEGIO_ADMIN' && (
+                        <>
+                            <Link to="/manage-users">Gestionar Usuarios</Link>
+                            <Link to="/manage-colegio">Mi Colegio</Link>
+                        </>
+                    )}
+                    
+                    {/* ROL: CAFETERÍA */}
+                    {user?.role === 'CAFETERIA' && (
+                        <Link to="/manage-menu">Gestionar Menú</Link>
+                    )}
 
-                    {user?.role === 'COLEGIO_ADMIN' && (
-                        <>
-                            <Link to="/manage-users">Gestionar Usuarios</Link>
-                            <Link to="/manage-colegio">Mi Colegio</Link>
-                        </>
-                    )}
-                    
-                    {user?.role === 'CAFETERIA' && (
-                        <Link to="/manage-menu">Gestionar Menú</Link>
-                    )}
+                    {/* ROL: CONSUMIDORES (ESTUDIANTE O PERSONAL) */}
+                    {(user?.role === 'ESTUDIANTE' || user?.role === 'PERSONAL_ACADEMICO') && (
+                        <>
+                            <Link to="/menu">Ver Menú</Link>
+                            <Link to="/allergies" style={{ color: '#d32f2f' }}>Mis Alergias ⚠️</Link>
+                        </>
+                    )}
 
-                    {user?.role === 'ESTUDIANTE' && (
-                        <>
-                        <Link to="/menu">Ver Menú</Link>
-                        <Link to="/allergies">Mis Alergias</Link>
-                        </>
-                    )}
-
-                    
+                    
                     <span>Welcome, {user?.username} ({user?.role})</span>
                     <button onClick={logout}>Logout</button>
                 </>
@@ -55,11 +57,11 @@ const Navigation = () => {
 };
 
 const App = () => {
-    const { loading } = useAuth();
+    const { loading } = useAuth();
 
-    if (loading) {
-        return <div style={{ textAlign: 'center', padding: '50px' }}>Cargando sesión...</div>;
-    }
+    if (loading) {
+        return <div style={{ textAlign: 'center', padding: '50px' }}>Cargando sesión...</div>;
+    }
 
     return (
         <>
@@ -70,15 +72,19 @@ const App = () => {
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/register" element={<RegisterPage />} />
                     
-
                     <Route element={<ProtectedRoute />}>
                         <Route path="/dashboard" element={<DashboardPage />} />
-                        <Route path="/manage-menu" element={<CafeteriaDashboard />} />
-                        <Route path="/menu" element={<StudentMenuPage />} />
+                        
+                        {/* Rutas de Admin */}
                         <Route path="/manage-users" element={<UserManagementPage />} />
-                        <Route path="/manage-colegio" element={<ColegioProfilePage />} />
-                        <Route path="/allergies" element={<StudentAllergiesPage />} />
+                        <Route path="/manage-colegio" element={<ColegioProfilePage />} />
 
+                        {/* Rutas de Cafetería */}
+                        <Route path="/manage-menu" element={<CafeteriaDashboard />} />
+
+                        {/* Rutas de Consumidores (Estudiantes y Personal) */}
+                        <Route path="/menu" element={<StudentMenuPage />} />
+                        <Route path="/allergies" element={<AllergiesManager />} />
                     </Route>
                 </Routes>
             </div>
