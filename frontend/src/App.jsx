@@ -29,21 +29,21 @@ const Navigation = () => {
                     {/* --- SECCIÓN ADMIN COLEGIO --- */}
                     {user?.role === 'COLEGIO_ADMIN' && (
                         <>
-                            <Link to="/manage-users">👥 Usuarios</Link>
-                            <Link to="/manage-colegio">🏫 Mi Colegio</Link>
+                            <Link to="/manage-users">Usuarios</Link>
+                            <Link to="/manage-colegio">Mi Colegio</Link>
                         </>
                     )}
                     
                     {/* --- SECCIÓN CAFETERÍA --- */}
                     {user?.role === 'CAFETERIA' && (
-                        <Link to="/manage-menu">🍔 Gestionar Menú</Link>
+                        <Link to="/manage-menu"> Gestionar Menú</Link>
                     )}
 
                     {/* --- SECCIÓN CONSUMIDORES (ESTUDIANTE/PERSONAL) --- */}
                     {(user?.role === 'ESTUDIANTE' || user?.role === 'PERSONAL_ACADEMICO') && (
                         <>
-                            <Link to="/menu">🍽️ Ver Menú</Link>
-                            <Link to="/allergies" style={{ color: '#ffeb3b' }}>⚠️ Mis Alergias</Link>
+                            <Link to="/menu">Ver Menú</Link>
+                            <Link to="/allergies" style={{ color: '#ffeb3b' }}>Mis Alergias</Link>
                         </>
                     )}
                     

@@ -75,8 +75,8 @@ const AllergiesManager = () => {
             const ingredientObj = allIngredients.find(i => i.id === ingredientId);
             setMyAllergies([...myAllergies, ingredientObj]);
             
-            setIsModalOpen(false); // Cerrar modal
-            setSelectedIngredientToAdd(""); // Limpiar select
+            setIsModalOpen(false);
+            setSelectedIngredientToAdd("");
         } catch (error) {
             alert("Error al agregar alergia");
         }
@@ -87,7 +87,6 @@ const AllergiesManager = () => {
     return (
         <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
             
-            {/* ENCABEZADO */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <h1>Mis Alergias y Restricciones</h1>
                 <Button onClick={() => setIsModalOpen(true)} style={{ backgroundColor: '#d32f2f' }}>
@@ -99,7 +98,6 @@ const AllergiesManager = () => {
                 Gestiona aquí los ingredientes que no puedes consumir. El sistema bloqueará compras peligrosas.
             </p>
 
-            {/* LISTADO DE ALERGIAS (TARJETAS) */}
             {myAllergies.length === 0 ? (
                 <div style={{ padding: '40px', textAlign: 'center', background: '#f9f9f9', borderRadius: '8px' }}>
                     No tienes alergias registradas. ¡Qué suerte!
@@ -123,14 +121,13 @@ const AllergiesManager = () => {
                                 style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '1.2rem' }}
                                 title="Eliminar alergia"
                             >
-                                🗑️
+                                -
                             </button>
                         </div>
                     ))}
                 </div>
             )}
 
-            {/* --- MODAL (Formulario Flotante) --- */}
             {isModalOpen && (
                 <div style={{
                     position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
