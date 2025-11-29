@@ -3,26 +3,33 @@ import { useCart } from '../context/CartContext';
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 
 const CartPage = () => {
     const { cart, removeFromCart, total, clearCart } = useCart();
+    const { orderService } = useAuth();
     const navigate = useNavigate();
     const [isPaying, setIsPaying] = useState(false);
     
     // Estado del formulario de pago
     const [cardData, setCardData] = useState({ number: '', expiry: '', cvv: '', name: '' });
 
-    const handlePayment = (e) => {
+    const handlePayment = async (e) => {
         e.preventDefault();
-        // SIMULACIÓN DE PROCESO DE PAGO SEGURO
-        if (cardData.number.length < 16) return alert("Número de tarjeta inválido");
+        if (cardData.number.length < 16) return alert("Número inválido");
 
-        // Aquí llamaríamos al backend para crear la ORDER
-        alert(" Pago procesado correctamente. ¡Tu pedido está en cocina!");
-        clearCart();
-        navigate('/menu');
-    };
-
+        try {
+            // 1. Llamada Real al Backend
+            await orderService.createOrder(cart);
+            
+            alert("¡Pago Exitoso! Tu saldo ha sido descontado.");
+            clearCart();
+            navigate('/menu');
+            
+        } catch (error) {
+            alert(`Error: ${error.message}`);
+        }
+    }
     if (cart.length === 0) return <div style={{padding:20}}>Tu carrito está vacío.</div>;
 
     return (

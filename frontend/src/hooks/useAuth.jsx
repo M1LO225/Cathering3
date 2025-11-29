@@ -3,6 +3,7 @@ import AuthService from '../services/auth.service';
 import UserService from '../services/UserService';
 import ColegioService from '../services/ColegioService'; 
 import ProductService from '../services/ProductService';
+import OrderService from '../services/OrderService';
 
 const AuthContext = createContext();
 
@@ -37,12 +38,12 @@ export const AuthProvider = ({ children }) => {
     const [token, setToken] = useState(initialToken);
     const [user, setUser] = useState(parseJwt(initialToken)); 
     const [loading, setLoading] = useState(true); // Debe empezar en true
-
+    
     const authService = useMemo(() => new AuthService(), []);
     const userService = useMemo(() => token ? new UserService(token) : null, [token]);
     const colegioService = useMemo(() => token ? new ColegioService(token) : null, [token]);
     const productService = useMemo(() => token ? new ProductService(token) : null, [token]);
-    
+    const orderService = useMemo(() => token ? new OrderService(token) : null, [token]);
 
     const logout = () => {
         localStorage.removeItem('token');
@@ -117,8 +118,9 @@ export const AuthProvider = ({ children }) => {
         authService,
         userService,
         colegioService,
-        productService 
-    }), [token, user, loading, authService, userService, colegioService, productService, loginFn, register]);
+        productService,
+        orderService 
+    }), [token, user, loading, authService, userService, colegioService, productService,orderService, loginFn, register]);
 
     
     return (

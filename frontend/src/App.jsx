@@ -10,6 +10,7 @@ import ColegioProfilePage from './pages/ColegioProfilePage';
 import CafeteriaDashboard from './pages/CafeteriaDashboard';
 import StudentMenuPage from './pages/StudentMenuPage'; 
 import AllergiesManager from './pages/AllergiesManager'; 
+import CafeteriaOrdersPage from './pages/CafeteriaOrdersPage';
 
 const Navigation = () => {
     const { isAuthenticated, logout, user } = useAuth(); 
@@ -36,9 +37,19 @@ const Navigation = () => {
                     
                     {/* --- SECCIÓN CAFETERÍA --- */}
                     {user?.role === 'CAFETERIA' && (
-                        <Link to="/manage-menu"> Gestionar Menú</Link>
+                        <>
+                            <Link to="/manage-menu">Gestionar Menú</Link>
+                            <Link to="/kitchen">👨‍🍳 Cocina</Link> 
+                        </>
                     )}
 
+                    
+                    {user?.role === 'CAFETERIA' && (
+                        <>
+                            <Route path="/manage-menu" element={<CafeteriaDashboard />} />
+                            <Route path="/kitchen" element={<CafeteriaOrdersPage />} />
+                        </>
+                    )}
                     {/* --- SECCIÓN CONSUMIDORES (ESTUDIANTE/PERSONAL) --- */}
                     {(user?.role === 'ESTUDIANTE' || user?.role === 'PERSONAL_ACADEMICO') && (
                         <>
