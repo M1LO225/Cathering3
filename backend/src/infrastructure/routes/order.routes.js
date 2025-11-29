@@ -1,6 +1,7 @@
 const { Router } = require('express');
 const AuthMiddleware = require('../middlewares/AuthMiddleware');
 const isCafeteria = require('../middlewares/isCafeteria');
+router.put('/:id/status', isCafeteria, orderController.updateStatus.bind(orderController));
 
 module.exports = (orderController) => {
     const router = Router();
