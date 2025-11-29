@@ -47,6 +47,14 @@ const DeleteProduct = require('./src/application/use-cases/DeleteProduct');
 
 const GetSafeMenu = require('./src/application/use-cases/GetSafeMenu');
 
+const SequelizeWalletRepository = require('./src/infrastructure/repositories/SequelizeWalletRepository');
+const SequelizeOrderRepository = require('./src/infrastructure/repositories/SequelizeOrderRepository');
+
+const orderRoutes = require('./src/infrastructure/routes/order.routes'); 
+const CreateOrder = require('./src/application/use-cases/CreateOrder');
+const GetIncomingOrders = require('./src/application/use-cases/GetIncomingOrders');
+const OrderController = require('./src/infrastructure/controllers/OrderController');
+
 // --- INYECCIÓN DE DEPENDENCIAS --- //
 
 // Instancias de Repositorios
@@ -78,6 +86,14 @@ productController.deleteProduct = deleteProduct;
 // Instancias de GetSafeMenu
 const getSafeMenu = new GetSafeMenu(productRepository, userRepository); // <-- Instanciar (necesita ambos repos)
 const productController = new ProductController(createProduct, getMenu, deleteProduct, getSafeMenu);
+
+const walletRepository = new SequelizeWalletRepository();
+const orderRepository = new SequelizeOrderRepository();
+
+const createOrder = new CreateOrder(orderRepository, walletRepository, productRepository);
+const getIncomingOrders = new GetIncomingOrders(orderRepository);
+
+const orderController = new OrderController(createOrder, getIncomingOrders);
 
 // --- CONFIGURACIÓN DE EXPRESS --- //
 const app = express();
@@ -111,6 +127,8 @@ app.use('/api/products', productRoutes(productController));
 app.get('/api/health', (req, res) => {
     res.json({ status: 'OK', server: 'App Cathering Backend' });
 });
+// Pedidos
+app.use('/api/orders', orderRoutes(orderController));
 
 // --- ARRANQUE DEL SERVIDOR ---
 // Sincroniza modelos con la BD y luego inicia
