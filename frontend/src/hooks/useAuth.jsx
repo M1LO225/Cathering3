@@ -4,9 +4,9 @@ import UserService from '../services/UserService';
 import ColegioService from '../services/ColegioService'; 
 import ProductService from '../services/ProductService';
 import OrderService from '../services/OrderService';
+import WalletService from '../services/WalletService';
 
 const AuthContext = createContext();
-
 
 const parseJwt = (token) => {
     try {
@@ -19,7 +19,6 @@ const parseJwt = (token) => {
         
         const decoded = JSON.parse(jsonPayload);
         
-
         return {
             id: decoded.userId,
             username: decoded.username,
@@ -37,13 +36,16 @@ export const AuthProvider = ({ children }) => {
     const initialToken = localStorage.getItem('token');
     const [token, setToken] = useState(initialToken);
     const [user, setUser] = useState(parseJwt(initialToken)); 
-    const [loading, setLoading] = useState(true); // Debe empezar en true
-    
+    const [loading, setLoading] = useState(true); 
+
     const authService = useMemo(() => new AuthService(), []);
+    
+    // Servicios dependientes del token
     const userService = useMemo(() => token ? new UserService(token) : null, [token]);
     const colegioService = useMemo(() => token ? new ColegioService(token) : null, [token]);
-    const productService = useMemo(() => token ? new ProductService(token) : null, [token]);
-    const orderService = useMemo(() => token ? new OrderService(token) : null, [token]);
+    const productService = useMemo(() => token ? new ProductService(token) : null, [token]);
+    const orderService = useMemo(() => token ? new OrderService(token) : null, [token]);
+    const walletService = useMemo(() => token ? new WalletService(token) : null, [token]);
 
     const logout = () => {
         localStorage.removeItem('token');
@@ -52,7 +54,6 @@ export const AuthProvider = ({ children }) => {
     };
 
     const register = async (formData) => {
-
         setLoading(true);
         try {
             const data = await authService.register(formData); 
@@ -64,17 +65,13 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-
     const loginFn = async (usernameOrEmail, password) => {
         setLoading(true);
         try {
-
             const userData = await authService.login(usernameOrEmail, password); 
             const newToken = localStorage.getItem('token');
             
-
             setUser(userData); 
-
             setToken(newToken); 
 
             setLoading(false);
@@ -85,7 +82,6 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-
     useEffect(() => {
         setLoading(true);
         if (token) {
@@ -93,17 +89,15 @@ export const AuthProvider = ({ children }) => {
             const currentTime = Date.now() / 1000;
             
             if (parsedUser && parsedUser.exp > currentTime) {
-
                 if (!user) {
                     setUser(parsedUser);
-                }
+                }
             } else {
                 logout(); 
             }
         } else {
-            
-            setUser(null);
-        }
+            setUser(null);
+        }
         setLoading(false);
     }, [token]); 
 
@@ -118,11 +112,11 @@ export const AuthProvider = ({ children }) => {
         authService,
         userService,
         colegioService,
-        productService,
-        orderService 
-    }), [token, user, loading, authService, userService, colegioService, productService,orderService, loginFn, register]);
+        productService,
+        orderService,
+        walletService
+    }), [token, user, loading, authService, userService, colegioService, productService, orderService, walletService, loginFn, register]);
 
-    
     return (
         <AuthContext.Provider value={contextValue}>
             {children}

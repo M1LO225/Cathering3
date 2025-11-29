@@ -29,5 +29,18 @@ class OrderService {
         });
         return response.json();
     }
+
+    async updateStatus(orderId, status) {
+        const response = await fetch(`${API_BASE_URL}/orders/${orderId}/status`, {
+            method: 'PUT',
+            headers: this.headers,
+            body: JSON.stringify({ status }),
+        });
+
+        if (!response.ok) {
+            throw new Error('Error al actualizar el estado de la orden');
+        }
+        return response.json();
+    }
 }
 export default OrderService;
