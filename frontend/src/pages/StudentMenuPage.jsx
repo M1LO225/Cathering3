@@ -39,7 +39,7 @@ const StudentMenuPage = () => {
         // Retorna TODOS los ingredientes conflictivos
         return product.ingredientes.filter(ing => myAllergyIds.includes(ing.id));
     };
-
+    
     const handlePreAdd = (product) => {
         const risks = checkAllergyRisk(product);
 

@@ -39,16 +39,16 @@ const CafeteriaOrdersPage = () => {
                                     {item.quantity}x <strong>{item.product?.nombre}</strong>
                                     {item.removed_ingredients && (
                                         <span style={{ color: 'red', marginLeft: '10px', fontSize: '0.9em' }}>
-                                             Sin: {item.removed_ingredients}
+                                            Sin: {item.removed_ingredients}
                                         </span>
                                     )}
                                 </li>
                             ))}
                         </ul>
                         <div style={{ textAlign: 'right', marginTop: '10px' }}>
-                           <button onClick={() => alert("Funcionalidad 'Listo' pendiente de implementar")}>
-                               Marcar como Listo 
-                           </button>
+                        <button onClick={() => alert("Funcionalidad 'Listo' pendiente de implementar")}>
+                            Marcar como Listo 
+                        </button>
                         </div>
                     </div>
                 ))}
