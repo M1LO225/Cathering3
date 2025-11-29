@@ -1,109 +1,111 @@
-// frontend/src/pages/StudentMenuPage.jsx
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { useCart } from '../context/CartContext';
 import Button from '../components/common/Button';
 
 const StudentMenuPage = () => {
-    const { productService, user } = useAuth();
+    const { productService, userService } = useAuth(); 
+    const { addToCart } = useCart(); // Hook del carrito
+    
     const [products, setProducts] = useState([]);
+    const [myAllergies, setMyAllergies] = useState([]); 
     const [loading, setLoading] = useState(true);
-    const [cart, setCart] = useState([]);
+
+    // Estado para el Modal de Conflicto
+    const [conflictProduct, setConflictProduct] = useState(null);
+    const [conflictIngredient, setConflictIngredient] = useState(null);
 
     useEffect(() => {
-        const fetchMenu = async () => {
+        const fetchData = async () => {
             try {
-                // El backend ya filtra por el colegio del usuario
-                const menu = await productService.getMenu();
-                setProducts(menu);
+                const [menuData, allergiesData] = await Promise.all([
+                    productService.getMenu(),
+                    userService.getMyAllergies()
+                ]);
+                setProducts(menuData);
+                setMyAllergies(allergiesData);
             } catch (error) {
-                console.error("Error cargando menú:", error);
+                console.error(error);
             } finally {
                 setLoading(false);
             }
         };
-        fetchMenu();
-    }, [productService]);
+        fetchData();
+    }, [productService, userService]);
 
-    const addToCart = (product) => {
-        // Aquí iría la lógica de validación de alérgenos (Próximo paso del Core)
-        setCart([...cart, product]);
-        alert(`Agregaste ${product.nombre} al carrito`);
+    const checkAllergyRisk = (product) => {
+        if (!product.ingredientes || !myAllergies.length) return null;
+        const myAllergyIds = myAllergies.map(a => a.id);
+        // Retorna TODOS los ingredientes conflictivos
+        return product.ingredientes.filter(ing => myAllergyIds.includes(ing.id));
     };
 
-    if (loading) return <div style={{ padding: '20px' }}>Cargando menú delicioso...</div>;
+    const handlePreAdd = (product) => {
+        const risks = checkAllergyRisk(product);
+
+        if (risks && risks.length > 0) {
+            // Si hay riesgo, abrimos el modal para decidir
+            setConflictIngredient(risks);
+            setConflictProduct(product);
+        } else {
+            // Si no hay riesgo, agregamos directo
+            addToCart(product, []);
+            alert("Producto agregado.");
+        }
+    };
+
+    const handleCustomizeAdd = () => {
+        // El usuario decidió quitar los ingredientes malos
+        const ingredientsToRemove = conflictIngredient.map(i => i.nombre);
+        addToCart(conflictProduct, ingredientsToRemove);
+        
+        setConflictProduct(null);
+        setConflictIngredient(null);
+        alert("Producto agregado SIN los ingredientes alérgicos.");
+    };
+
+    if (loading) return <div>Cargando menú...</div>;
 
     return (
         <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
-            <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <h1>Menú del Día</h1>
-                <div style={{ background: '#eee', padding: '10px', borderRadius: '8px' }}>
-                    🛒 Carrito: <strong>{cart.length}</strong> ítems
-                </div>
-            </header>
+            <h1>Menú del Día</h1>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '20px' }}>
+                {products.map(product => {
+                    const risks = checkAllergyRisk(product);
+                    const hasRisk = risks && risks.length > 0;
 
-            {products.length === 0 ? (
-                <p>No hay productos disponibles por el momento.</p>
-            ) : (
-                <div style={{ 
-                    display: 'grid', 
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', 
-                    gap: '20px' 
-                }}>
-                    {products.map(product => (
-                        <div key={product.id} style={{ 
-                            border: '1px solid #ddd', 
-                            borderRadius: '12px', 
-                            overflow: 'hidden',
-                            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                            background: 'white'
-                        }}>
-                            {/* Imagen del Producto */}
-                            <div style={{ height: '180px', overflow: 'hidden' }}>
-                                <img 
-                                    src={`http://localhost:3000${product.imagen_url}`} 
-                                    alt={product.nombre}
-                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                    onError={(e) => {e.target.src = 'https://via.placeholder.com/300?text=Sin+Imagen'}} // Fallback simple
-                                />
-                            </div>
-
-                            {/* Info del Producto */}
-                            <div style={{ padding: '15px' }}>
-                                <h3 style={{ margin: '0 0 10px 0' }}>{product.nombre}</h3>
-                                <p style={{ color: '#666', fontSize: '0.9rem', height: '40px', overflow: 'hidden' }}>
-                                    {product.descripcion}
-                                </p>
-                                
-                                {/* Ingredientes (Tags) */}
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', margin: '10px 0' }}>
-                                    {product.ingredientes?.map(ing => (
-                                        <span key={ing.id} style={{ 
-                                            background: '#f0f0f0', 
-                                            fontSize: '0.75rem', 
-                                            padding: '2px 8px', 
-                                            borderRadius: '10px',
-                                            color: '#555'
-                                        }}>
-                                            {ing.nombre}
-                                        </span>
-                                    ))}
+                    return (
+                        <div key={product.id} style={{ border: '1px solid #ddd', borderRadius: '12px', padding: '10px', position: 'relative' }}>
+                            {hasRisk && (
+                                <div style={{ background: '#ffeb3b', padding: '5px', fontSize: '0.8em', textAlign: 'center' }}>
+                                     Contiene alérgenos
                                 </div>
-
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '15px' }}>
-                                    <span style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#2e7d32' }}>
-                                        ${product.precio}
-                                    </span>
-                                    <Button 
-                                        onClick={() => addToCart(product)}
-                                        disabled={product.stock <= 0}
-                                        style={{ padding: '8px 15px', fontSize: '0.9rem' }}
-                                    >
-                                        {product.stock > 0 ? 'Agregar' : 'Agotado'}
-                                    </Button>
-                                </div>
-                            </div>
+                            )}
+                            <h3>{product.nombre}</h3>
+                            <p>${product.precio}</p>
+                            <Button onClick={() => handlePreAdd(product)}>
+                                {hasRisk ? 'Ver Opciones' : 'Agregar'}
+                            </Button>
                         </div>
-                    ))}
+                    );
+                })}
+            </div>
+            {conflictProduct && (
+                <div style={{ position: 'fixed', top:0, left:0, width:'100%', height:'100%', background:'rgba(0,0,0,0.8)', display:'flex', justifyContent:'center', alignItems:'center' }}>
+                    <div style={{ background:'white', padding:'30px', borderRadius:'10px', maxWidth:'400px' }}>
+                        <h2 style={{ color: '#d32f2f' }}> ¡Alerta de Alergia!</h2>
+                        <p>El plato <strong>{conflictProduct.nombre}</strong> contiene:</p>
+                        <ul>
+                            {conflictIngredient.map(i => <li key={i.id}><strong>{i.nombre}</strong></li>)}
+                        </ul>
+                        <p>¿Deseas pedirlo <strong>SIN</strong> estos ingredientes?</p>
+                        
+                        <div style={{ display:'flex', gap:'10px', marginTop:'20px' }}>
+                            <Button onClick={() => setConflictProduct(null)} style={{ background:'#999' }}>Cancelar</Button>
+                            <Button onClick={handleCustomizeAdd}>Sí, quitar ingredientes</Button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
