@@ -5,6 +5,7 @@ class ProductController {
         this.createProduct = createProduct;
         this.getMenu = getMenu;
         this.deleteProduct = deleteProduct;
+        this.getSafeMenu = getSafeMenu;
     }
 
     async create(req, res) {
@@ -82,6 +83,20 @@ class ProductController {
         }catch (error) {
             console.error('Error obteniendo ingredientes:', error);
             res.status(500).json({ error: 'Error interno al obtener los ingredientes.' });
+        }
+    }
+    async listForStudent(req, res) {
+        try {
+            const colegioId = req.user.colegio_id;
+            const userId = req.user.id;
+
+            // Usamos la lógica del forEach cruzado
+            const menu = await this.getSafeMenu.execute(colegioId, userId);
+            
+            res.status(200).json(menu);
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ error: 'Error analizando el menú.' });
         }
     }
 

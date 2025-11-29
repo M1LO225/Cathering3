@@ -10,6 +10,8 @@ module.exports = (productController) => {
     router.post('/', isCafeteria, upload.single('image'), productController.create.bind(productController));
     router.get('/ingredients', productController.listIngredients.bind(productController));
     router.delete('/:id', isCafeteria, productController.delete.bind(productController));
+    // Ruta específica para estudiantes (usa el análisis cruzado)
+    router.get('/student-menu', productController.listForStudent.bind(productController));
 
     return router;
 };

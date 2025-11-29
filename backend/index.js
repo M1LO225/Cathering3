@@ -45,6 +45,8 @@ const CreateProduct = require('./src/application/use-cases/CreateProduct');
 const GetMenu = require('./src/application/use-cases/GetMenu');
 const DeleteProduct = require('./src/application/use-cases/DeleteProduct');
 
+const GetSafeMenu = require('./src/application/use-cases/GetSafeMenu');
+
 // --- INYECCIÓN DE DEPENDENCIAS --- //
 
 // Instancias de Repositorios
@@ -73,6 +75,9 @@ const productController = new ProductController(createProduct, getMenu, deletePr
 productController.ingredientRepository = ingredientRepository;
 productController.deleteProduct = deleteProduct;
 
+// Instancias de GetSafeMenu
+const getSafeMenu = new GetSafeMenu(productRepository, userRepository); // <-- Instanciar (necesita ambos repos)
+const productController = new ProductController(createProduct, getMenu, deleteProduct, getSafeMenu);
 
 // --- CONFIGURACIÓN DE EXPRESS --- //
 const app = express();
