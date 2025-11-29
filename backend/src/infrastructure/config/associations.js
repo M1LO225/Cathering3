@@ -5,6 +5,8 @@ const TransactionModel = require('../models/TransactionModel');
 const ProductModel = require('../models/ProductModel');
 const IngredientModel = require('../models/IngredientModel');
 const ProductIngredientModel = require('../models/ProductIngredientModel');
+const OrderModel = require('../models/OrderModel');
+const OrderItemModel = require('../models/OrderItemModel');
 
 // 1. Colegio <-> Usuarios
 ColegioModel.hasMany(UserModel, { foreignKey: 'colegio_id', as: 'usuarios' });
@@ -45,7 +47,12 @@ IngredientModel.belongsToMany(UserModel, {
     foreignKey: 'ingredient_id',
     as: 'alergicos'
 });
+OrderModel.hasMany(OrderItemModel, { foreignKey: 'order_id', as: 'items' });
+OrderItemModel.belongsTo(OrderModel, { foreignKey: 'order_id' });
+
+ProductModel.hasMany(OrderItemModel, { foreignKey: 'product_id' });
+OrderItemModel.belongsTo(ProductModel, { foreignKey: 'product_id', as: 'product' });
 
 module.exports = { 
-    ColegioModel, UserModel, WalletModel, TransactionModel, ProductModel, IngredientModel 
+    ColegioModel, UserModel, WalletModel, TransactionModel, ProductModel, IngredientModel,OrderModel, OrderItemModel 
 };
