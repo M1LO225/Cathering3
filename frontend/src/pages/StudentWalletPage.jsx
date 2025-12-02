@@ -38,7 +38,7 @@ const StudentWalletPage = () => {
             <h1>Mi Billetera Digital</h1>
             
             <div style={{ 
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
+                background: 'linear-gradient(135deg, #FFCC33 0%, #8B4513 100%)', 
                 color: 'white', padding: '40px', borderRadius: '20px', marginBottom: '30px',
                 boxShadow: '0 10px 20px rgba(0,0,0,0.2)'
             }}>
