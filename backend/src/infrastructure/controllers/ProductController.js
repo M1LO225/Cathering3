@@ -1,7 +1,7 @@
 const { parse } = require("dotenv");
 
 class ProductController {
-    constructor(createProduct, getMenu, deleteProduct) {
+    constructor(createProduct, getMenu, deleteProduct, getSafeMenu) {
         this.createProduct = createProduct;
         this.getMenu = getMenu;
         this.deleteProduct = deleteProduct;

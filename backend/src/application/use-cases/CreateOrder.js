@@ -1,4 +1,4 @@
-const sequelize = require('../infrastructure/config/database');
+const sequelize = require('../../infrastructure/config/database');
 
 class CreateOrder {
     constructor(orderRepository, walletRepository, productRepository) {

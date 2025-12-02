@@ -39,7 +39,7 @@ const Navigation = () => {
                     {user?.role === 'CAFETERIA' && (
                         <>
                             <Link to="/manage-menu">Gestionar Menú</Link>
-                            <Link to="/kitchen">👨‍🍳 Cocina</Link> 
+                            <Link to="/kitchen">Cocina</Link> 
                         </>
                     )}
 
