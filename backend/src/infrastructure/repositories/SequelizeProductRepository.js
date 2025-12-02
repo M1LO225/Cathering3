@@ -30,10 +30,6 @@ class SequelizeProductRepository {
         });
     }
 
-    /**
-      Actualiza producto y sus ingredientes.
-      Si ingredientIds es null, no toca los ingredientes.
-     */
     async update(id, productData, ingredientIds) {
         const product = await ProductModel.findByPk(id);
         if (!product) return null;
@@ -53,15 +49,18 @@ class SequelizeProductRepository {
     /*
       Actualización rápida solo de stock (útil para ventas)
     */
-    async updateStock(id, quantity) {
-        const product = await ProductModel.findByPk(id);
+    async updateStock(id, quantity, transaction = null) {
+        const options = transaction ? { transaction } : {}; 
+        
+
+        const product = await ProductModel.findByPk(id, options);
+        
         if (!product) return null;
         
-        // quantity puede ser negativo (venta) o positivo (reposición)
         const newStock = product.stock + quantity;
-        if (newStock < 0) throw new Error("Stock insuficiente");
+        if (newStock < 0) throw new Error(`Stock insuficiente para ${product.nombre}`);
 
-        await product.update({ stock: newStock });
+        await product.update({ stock: newStock }, options);
         return product;
     }
 

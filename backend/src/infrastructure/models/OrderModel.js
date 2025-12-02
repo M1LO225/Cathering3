@@ -6,6 +6,7 @@ const OrderModel = sequelize.define('Order', {
     total: { type: DataTypes.FLOAT, allowNull: false },
     status: { type: DataTypes.ENUM('PENDING', 'PAID', 'COMPLETED'), defaultValue: 'PENDING' },
     payment_method: { type: DataTypes.STRING }, // 'CARD', 'PAYPAL'
+    user_id: {type: DataTypes.INTEGER,allowNull: false}
 }, { timestamps: true });
 
 module.exports = OrderModel;

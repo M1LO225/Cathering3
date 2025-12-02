@@ -40,8 +40,12 @@ class SequelizeOrderRepository {
         });
     }
     
-    async updateStatus(orderId, status) {
-        return await OrderModel.update({ status }, { where: { id: orderId } });
+    async updateStatus(orderId, newStatus) {
+        // Actualiza el campo 'status' donde el ID coincida
+        return await OrderModel.update(
+            { status: newStatus }, 
+            { where: { id: orderId } }
+        );
     }
 }
 

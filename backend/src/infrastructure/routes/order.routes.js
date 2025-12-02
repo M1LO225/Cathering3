@@ -12,5 +12,7 @@ module.exports = (orderController) => {
     // Ver pedidos entrantes (Solo Cafetería)
     router.get('/incoming', isCafeteria, orderController.listIncoming.bind(orderController));
 
+    router.put('/:id/status', isCafeteria, orderController.updateStatus.bind(orderController));
+
     return router;
 };

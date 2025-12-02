@@ -11,6 +11,7 @@ import StudentMenuPage from './pages/StudentMenuPage';
 import AllergiesManager from './pages/AllergiesManager'; 
 import CafeteriaOrdersPage from './pages/CafeteriaOrdersPage';
 import StudentWalletPage from './pages/StudentWalletPage';
+import CartPage from './pages/CartPage';
 
 const Navigation = () => {
     const { isAuthenticated, logout, user } = useAuth(); 
@@ -47,6 +48,7 @@ const Navigation = () => {
                         <>
                             <Link to="/menu">Ver Menú</Link>
                             <Link to="/allergies" style={{ color: '#ffeb3b' }}>Mis Alergias</Link>
+                            <Link to="/cart">Carrito</Link>
                             <Link to="/wallet">Mi Billetera</Link>
                         </>
                     )}
@@ -91,10 +93,12 @@ const App = () => {
 
 
                         <Route path="/manage-menu" element={<CafeteriaDashboard />} />
+                        <Route path="/kitchen" element={<CafeteriaOrdersPage />} />
 
 
                         <Route path="/menu" element={<StudentMenuPage />} />
                         <Route path="/allergies" element={<AllergiesManager />} />
+                        <Route path="/cart" element={<CartPage />} />
                         <Route path="/wallet" element={<StudentWalletPage />} />
 
                         <Route path="/dashboard" element={<div style={{padding: 20}}>Selecciona una opción del menú.</div>} />

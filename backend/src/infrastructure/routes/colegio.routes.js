@@ -21,7 +21,7 @@ module.exports = (colegioController) => {
     /**
      * PUT /api/colegio/me
      * Actualiza los detalles de la institución del admin logueado
-V    * Valida el teléfono (dato sensible) antes de actualizar.
+     * Valida el teléfono (dato sensible) antes de actualizar.
      */
     router.put(
         '/me', 

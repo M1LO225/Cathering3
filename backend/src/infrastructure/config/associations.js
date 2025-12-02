@@ -47,6 +47,10 @@ IngredientModel.belongsToMany(UserModel, {
     foreignKey: 'ingredient_id',
     as: 'alergicos'
 });
+
+UserModel.hasMany(OrderModel, { foreignKey: 'user_id', as: 'orders' });
+OrderModel.belongsTo(UserModel, { foreignKey: 'user_id', as: 'user' });
+
 OrderModel.hasMany(OrderItemModel, { foreignKey: 'order_id', as: 'items' });
 OrderItemModel.belongsTo(OrderModel, { foreignKey: 'order_id' });
 

@@ -50,13 +50,22 @@ const GetSafeMenu = require('./src/application/use-cases/GetSafeMenu');
 
 // > Pedidos y Wallet
 const orderRoutes = require('./src/infrastructure/routes/order.routes'); 
+const walletRoutes = require('./src/infrastructure/routes/wallet.routes');
+
+const OrderController = require('./src/infrastructure/controllers/OrderController');
+const WalletController = require('./src/infrastructure/controllers/WalletController');
+
 const CreateOrder = require('./src/application/use-cases/CreateOrder');
 const GetIncomingOrders = require('./src/application/use-cases/GetIncomingOrders');
-const OrderController = require('./src/infrastructure/controllers/OrderController');
+const UpdateOrderStatus = require('./src/application/use-cases/UpdateOrderStatus'); // <-- FALTABA ESTO
+
+const GetWalletBalance = require('./src/application/use-cases/GetWalletBalance');
+const TopUpWallet = require('./src/application/use-cases/TopUpWallet');
+
 
 // --- INYECCIÓN DE DEPENDENCIAS --- //
 
-// Instancias de Repositorios
+// 1. Instancias de Repositorios
 const userRepository = new SequelizeUserRepository();
 const colegioRepository = new SequelizeColegioRepository();
 const productRepository = new SequelizeProductRepository();
@@ -64,34 +73,55 @@ const ingredientRepository = new SequelizeIngredientRepository();
 const walletRepository = new SequelizeWalletRepository();
 const orderRepository = new SequelizeOrderRepository();
 
-// Instancias de Casos de Uso
+// 2. Instancias de Casos de Uso
+
+// Auth
 const registerUser = new RegisterUser(userRepository); 
 const loginUser = new LoginUser(userRepository);
+
+// Users
 const getAllUsers = new GetAllUsers(userRepository); 
 const updateUser = new UpdateUser(userRepository);     
 const deleteUser = new DeleteUser(userRepository); 
+
+// Colegio
 const getColegioDetails = new GetColegioDetails(colegioRepository);
 const updateColegioDetails = new UpdateColegioDetails(colegioRepository);
+
+// Productos
 const createProduct = new CreateProduct(productRepository, ingredientRepository);
 const getMenu = new GetMenu(productRepository);
 const deleteProduct = new DeleteProduct(productRepository);
 const getSafeMenu = new GetSafeMenu(productRepository, userRepository);
 
+// Pedidos
 const createOrder = new CreateOrder(orderRepository, walletRepository, productRepository);
 const getIncomingOrders = new GetIncomingOrders(orderRepository);
+const updateOrderStatus = new UpdateOrderStatus(orderRepository); // Instancia necesaria
+
+// Wallet
+const getWalletBalance = new GetWalletBalance(walletRepository);
+const topUpWallet = new TopUpWallet(walletRepository);
 
 
-// Instancias de Controladores
+// 3. Instancias de Controladores
+
 const authController = new AuthController(registerUser, loginUser);
-authController.userRepository = userRepository;
+authController.userRepository = userRepository; // Inyección manual para alergias
 
 const colegioController = new ColegioController(getColegioDetails, updateColegioDetails);
 
-// Controlador de Productos: pasamos TODOS los casos de uso en el orden correcto
+// Product Controller con todas sus dependencias
 const productController = new ProductController(createProduct, getMenu, deleteProduct, getSafeMenu);
 productController.ingredientRepository = ingredientRepository; // Inyección manual
 
-const orderController = new OrderController(createOrder, getIncomingOrders);
+// Order Controller
+// IMPORTANTE: Pasamos 'updateOrderStatus' como tercer argumento en el constructor
+const orderController = new OrderController(createOrder, getIncomingOrders, updateOrderStatus);
+
+// Wallet Controller
+const walletController = new WalletController(getWalletBalance, topUpWallet);
+
 
 // --- CONFIGURACIÓN DE EXPRESS --- //
 const app = express();
@@ -103,7 +133,7 @@ app.use(bodyParser.json());
 // SERVIR IMÁGENES ESTÁTICAS
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// --- RUTAS ---//
+// --- RUTAS --- //
 
 // 1. Auth
 app.use('/api/auth', authRoutes(authController));
@@ -120,8 +150,11 @@ app.use('/api/colegio', colegioRoutes(colegioController));
 // 4. Productos (Gestión Cafetería / Ver Estudiante)
 app.use('/api/products', productRoutes(productController));
 
-// 5. Pedidos
+// 5. Pedidos (Gestión de Compra y Cocina)
 app.use('/api/orders', orderRoutes(orderController));
+
+// 6. Billetera (Gestión de Saldo)
+app.use('/api/wallet', walletRoutes(walletController));
 
 // Test Route
 app.get('/api/health', (req, res) => {
@@ -130,6 +163,7 @@ app.get('/api/health', (req, res) => {
 
 
 // --- ARRANQUE DEL SERVIDOR ---
+// Sincroniza modelos con la BD y luego inicia
 db.sync({ force: false }) 
 .then(() => {
     console.log("Base de datos sincronizada (Sequelize).");

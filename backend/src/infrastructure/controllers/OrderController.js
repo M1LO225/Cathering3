@@ -1,7 +1,8 @@
 class OrderController {
-    constructor(createOrder, getIncomingOrders) {
+    constructor(createOrder, getIncomingOrders, updateOrderStatus) {
         this.createOrder = createOrder;
         this.getIncomingOrders = getIncomingOrders;
+        this.updateOrderStatus = updateOrderStatus;
     }
 
     // POST /api/orders (Estudiante/Personal)
@@ -32,6 +33,21 @@ class OrderController {
             const orders = await this.getIncomingOrders.execute(colegioId);
             res.json(orders);
         } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    }
+
+    async updateStatus(req, res) {
+        try {
+            const { id } = req.params;
+            const { status } = req.body; // 'EN_PREPARACION', 'LISTO'
+            
+            // Usamos el caso de uso inyectado
+            await this.updateOrderStatus.execute(id, status);
+            
+            res.json({ message: `Pedido actualizado a ${status}` });
+        } catch (error) {
+            console.error(error);
             res.status(500).json({ error: error.message });
         }
     }

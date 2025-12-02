@@ -26,7 +26,7 @@ class CreateOrder {
                 if (product.stock < 1) throw new Error(`Producto ${product.nombre} agotado.`);
 
                 // Restar Stock
-                await this.productRepository.updateStock(product.id, -1); // Método que creamos antes
+                await this.productRepository.updateStock(product.id, -1, t); // Método que creamos antes
 
                 // Acumular total
                 totalCalculated += product.precio;
