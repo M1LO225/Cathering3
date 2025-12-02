@@ -43,14 +43,6 @@ const Navigation = () => {
                         </>
                     )}
 
-                    
-                    {user?.role === 'CAFETERIA' && (
-                        <>
-                            <Route path="/manage-menu" element={<CafeteriaDashboard />} />
-                            <Route path="/kitchen" element={<CafeteriaOrdersPage />} />
-                        </>
-                    )}
-
                     {(user?.role === 'ESTUDIANTE' || user?.role === 'PERSONAL_ACADEMICO') && (
                         <>
                             <Link to="/menu">Ver Menú</Link>
