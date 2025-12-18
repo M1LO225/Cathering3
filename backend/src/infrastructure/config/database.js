@@ -7,6 +7,7 @@ if (process.env.NODE_ENV === 'production') {
 
     sequelize = new Sequelize(process.env.DB_URL, {
         dialect: 'postgres',
+        protocol:'postgres',
         logging: false,
         dialectOptions: {
             ssl: {
