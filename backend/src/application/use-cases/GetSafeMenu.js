@@ -34,7 +34,7 @@ class GetSafeMenu {
                     }
                 }
             }
-
+            
             // Inyectamos la info cruzada
             productData.has_risk = !!conflict; // Booleano
             productData.risk_ingredient = conflict; // Nombre del ingrediente peligroso
