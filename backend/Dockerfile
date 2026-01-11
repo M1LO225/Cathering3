@@ -1,20 +1,24 @@
-# 1. Usar una imagen base de Node ligera (Alpine Linux)
-FROM node:22-alpine
+# USAMOS DEBIAN (SLIM) EN LUGAR DE ALPINE
+# Esto evita problemas de compatibilidad con Python y SQLite
+FROM node:20-slim
 
-# 2. Crear carpeta de trabajo dentro del contenedor
+# Instalar OpenSSL (Necesario para Sequelize/Auth) y herramientas básicas
+RUN apt-get update -y && apt-get install -y openssl python3 make g++
+
 WORKDIR /app
 
-# 3. Copiar los archivos de dependencias primero (para aprovechar caché)
 COPY package*.json ./
 
-# 4. Instalar dependencias
+# CAMBIO CRÍTICO:
+# Quitamos "--build-from-source".
+# Al usar Debian, npm descargará el binario de SQLite ya compilado.
 RUN npm install
 
-# 5. Copiar el resto del código del backend
 COPY . .
 
-# 6. Exponer el puerto que usa tu backend
+# Crear carpeta de datos
+RUN mkdir -p /app/data
+
 EXPOSE 3000
 
-# 7. Comando para iniciar la app
 CMD ["npm", "run", "dev"]

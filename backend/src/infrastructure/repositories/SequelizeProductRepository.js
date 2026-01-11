@@ -1,5 +1,7 @@
 const ProductModel = require('../models/ProductModel');
 const IngredientModel = require('../models/IngredientModel');
+const {Op}= require('sequelize');
+const { Where } = require('sequelize/lib/utils');
 
 class SequelizeProductRepository {
 
@@ -69,6 +71,22 @@ class SequelizeProductRepository {
             where: { id, colegio_id: colegioId }
         });
         return deletedCount > 0;
+    }
+
+    async findAvailableByColegio(colegio_id){
+        const today = new Date();
+        return await ProductModel.findAll({
+            Where:{ colegio_id:colegio_id,
+                [Op.or]:[
+                    {available_From:{[Op.eq]:null}},
+                    {available_From:{[Op.lte]:today}}
+                ]
+            },
+            include:[{
+                model:IngredientModel, as:'ingredientes', through:{attributes:[]} 
+            }]
+            
+        });
     }
 }
 

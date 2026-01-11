@@ -11,7 +11,7 @@ const CafeteriaDashboard = () => {
     
     // Estado del formulario
     const [newProduct, setNewProduct] = useState({
-        nombre: '', descripcion: '', precio: '', stock: '', tiempo_prep: '', ingredientes: ''
+        nombre: '', descripcion: '', precio: '', stock: '', tiempo_prep: '', ingredientes: '', available_From:''
     });
     const [imageFile, setImageFile] = useState(null);
 
@@ -48,11 +48,11 @@ const CafeteriaDashboard = () => {
         // Ingredientes: Enviamos texto separado por comas, el backend lo procesa
         formData.append('ingredientes', newProduct.ingredientes); 
         formData.append('image', imageFile);
-
+        formData.append('available_From', newProduct.available_From);
         try {
             await productService.createProduct(formData);
             alert("Producto creado!");
-            setNewProduct({ nombre: '', descripcion: '', precio: '', stock: '', tiempo_prep: '', ingredientes: '' });
+            setNewProduct({ nombre: '', descripcion: '', precio: '', stock: '', tiempo_prep: '', ingredientes: '',available_From:'' });
             setImageFile(null);
             fetchMenu(); // Recargar lista
         } catch (error) {
@@ -89,6 +89,8 @@ const CafeteriaDashboard = () => {
                         <Input label="Precio ($)" name="precio" type="number" step="0.01" value={newProduct.precio} onChange={handleChange} required />
                         <Input label="Stock (unidades)" name="stock" type="number" value={newProduct.stock} onChange={handleChange} required />
                         <Input label="Tiempo Prep (min)" name="tiempo_prep" type="number" value={newProduct.tiempo_prep} onChange={handleChange} required />
+                        <Input label="Programar Fecha" name='available_From' type="date" value={newProduct.available_From} onChange={handleChange}/>                   
+                        
                     </div>
                     <Input label="Descripción" name="descripcion" value={newProduct.descripcion} onChange={handleChange} />
                     <Input label="Ingredientes (separados por coma)" name="ingredientes" placeholder="Ej: Maní, Leche, Harina" value={newProduct.ingredientes} onChange={handleChange} />
@@ -114,12 +116,15 @@ const CafeteriaDashboard = () => {
                                 style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '4px' }} 
                             />
                             <h4>{p.nombre}</h4>
+                            
                             <p style={{ color: '#888', fontSize: '0.9em' }}>{p.descripcion}</p>
                             <p><strong>${p.precio}</strong> | Stock: {p.stock}</p>
                             <div style={{ fontSize: '0.85em', color: '#555' }}>
                                 <strong>Ingredientes:</strong> {p.ingredientes?.map(i => i.nombre).join(', ')}
                             </div>
-
+                            <div>
+                                desde: {p.available_From}  
+                            </div>   
                             <Button 
                                 onClick={() => handleDelete(p.id)} 
                                 style={{ backgroundColor: '#d32f2f', width: '100%', fontSize: '0.9em' }}

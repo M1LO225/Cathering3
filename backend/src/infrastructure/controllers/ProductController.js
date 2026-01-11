@@ -10,7 +10,7 @@ class ProductController {
 
     async create(req, res) {
         try {
-            const { nombre, descripcion, precio, stock, tiempo_prep, ingredientes } = req.body;
+            const { nombre, descripcion, precio, stock, tiempo_prep, ingredientes,available_From } = req.body;
             const colegioId = req.user.colegio_id; 
 
             if (!req.file) {
@@ -49,7 +49,8 @@ class ProductController {
                 stock: parseInt(stock),
                 tiempo_prep: parseInt(tiempo_prep),
                 imagen_url: `/uploads/${req.file.filename}`,
-                colegio_id: colegioId
+                colegio_id: colegioId,
+                available_From: available_From ? available_From: null
             };
 
             const newProduct = await this.createProduct.execute(productData, parsedIngredients);
@@ -68,7 +69,16 @@ class ProductController {
     async list(req, res) {
         try {
             const colegioId = req.user.colegio_id; // Funciona para CAFETERIA y ESTUDIANTE (ambos tienen colegio_id en token)
-            const menu = await this.getMenu.execute(colegioId);
+            const rol = req.user.rol;
+            let menu 
+                if(rol === 'CAFETERIA' || rol === 'COLEGIO_ADMIN'){
+                    menu = await this.getMenu.execute(colegioId);
+                }else if(rol === 'ESTUDIANTE'){
+                    menu = await this.getMenu.execute(colegioId,false); 
+                }else{
+                    console.log(error);
+                }
+            
             res.status(200).json(menu);
         } catch (error) {
             console.error('Error obteniendo menú:', error);
@@ -115,6 +125,7 @@ class ProductController {
             res.status(status).json({ error: error.message });
         }
     }
+
 }
 
 module.exports = ProductController;

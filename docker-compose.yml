@@ -1,22 +1,19 @@
 version: '3.8'
 
 services:
-  # Servicio del Backend
   backend:
     build: ./backend
     ports:
       - "3000:3000"
     volumes:
-      - ./backend:/app          # "Espejo": Lo que editas en tu PC se ve en el contenedor
-      - /app/node_modules       # Evita borrar los node_modules del contenedor
+      - ./backend:/app
+      - /app/node_modules
     environment:
       - PORT=3000
       - NODE_ENV=development
-      # Si usas SQLite, necesitamos que el archivo persista
     networks:
       - cathering-network
 
-  # Servicio del Frontend
   frontend:
     build: ./frontend
     ports:
@@ -25,9 +22,10 @@ services:
       - ./frontend:/app
       - /app/node_modules
     environment:
+      # Esto está correcto porque en index.js definiste las rutas como /api/auth
       - VITE_API_URL=http://localhost:3000/api
     depends_on:
-      - backend  # Espera a que el backend inicie
+      - backend
     networks:
       - cathering-network
 

@@ -1,38 +1,22 @@
 const { Sequelize } = require('sequelize');
 const path = require('path');
+const fs = require('fs');
 
-let sequelize;
+// Ruta absoluta segura para el archivo DB
+// En Docker será: /app/data/auth.sqlite
+const dbPath = path.resolve(__dirname, '../../../../data/auth.sqlite');
 
-if (process.env.NODE_ENV === 'production') {
-
-    sequelize = new Sequelize(process.env.DB_URL, {
-        dialect: 'postgres',
-        protocol:'postgres',
-        logging: false,
-        dialectOptions: {
-            ssl: {
-                require: true,
-                rejectUnauthorized: false
-            }
-        }
-    });
-} else {
-    const dbPath = path.resolve(__dirname, '..', '..', '..', 'data', 'auth.sqlite');
-    sequelize = new Sequelize({
-        dialect: 'sqlite',
-        storage: dbPath,
-        logging: false,
-        retry: {
-            match: [/SQLITE_BUSY/], // Si ve este error
-            name: 'query',
-            max: 5 // Intenta 5 veces antes de fallar
-        },
-        pool: {
-            max: 1, // Forzar a usar solo una conexión a la vez para evitar bloqueos
-            min: 0,
-            idle: 10000
-        }
-    });
+// ASEGURAR QUE LA CARPETA EXISTE (Truco anti-errores)
+const dir = path.dirname(dbPath);
+if (!fs.existsSync(dir)){
+    fs.mkdirSync(dir, { recursive: true });
 }
+
+// Configuración
+const sequelize = new Sequelize({
+    dialect: 'sqlite',
+    storage: dbPath,
+    logging: false, // Quitar ruido en consola
+});
 
 module.exports = sequelize;

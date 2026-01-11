@@ -10,6 +10,7 @@ const ProductModel = sequelize.define('Product', {
     tiempo_prep: { type: DataTypes.INTEGER }, // En minutos
     imagen_url: { type: DataTypes.STRING }, // Ruta local del archivo
     // colegio_id se agregará en las asociaciones
+    available_From: {type: DataTypes.DATEONLY}
 }, { timestamps: true });
 
 module.exports = ProductModel;

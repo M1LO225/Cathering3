@@ -57,6 +57,7 @@ OrderItemModel.belongsTo(OrderModel, { foreignKey: 'order_id' });
 ProductModel.hasMany(OrderItemModel, { foreignKey: 'product_id' });
 OrderItemModel.belongsTo(ProductModel, { foreignKey: 'product_id', as: 'product' });
 
+
 module.exports = { 
     ColegioModel, UserModel, WalletModel, TransactionModel, ProductModel, IngredientModel,OrderModel, OrderItemModel 
 };

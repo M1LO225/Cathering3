@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/auth';
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 const TOKEN_KEY = 'token';
 
 class AuthService {
@@ -9,7 +9,7 @@ class AuthService {
      * @param {Object} formData (incluye user y colegio data)
      */
     async register(formData) {
-        const response = await fetch(`${API_URL}/register`, {
+        const response = await fetch(`${BASE_URL}/register`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -31,7 +31,7 @@ class AuthService {
      * Login (sin cambios en la lógica)
      */
     async login(usernameOrEmail, password) {
-        const response = await fetch(`${API_URL}/login`, {
+        const response = await fetch(`${BASE_URL}/login`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -71,7 +71,7 @@ class AuthService {
             'Authorization': `Bearer ${token}`, 
         };
 
-        const response = await fetch(`http://localhost:3000/api/${endpoint}`, {
+        const response = await fetch(`${BASE_URL}/${endpoint}`, {
             ...options,
             headers: {
                 ...defaultHeaders,
@@ -90,4 +90,4 @@ class AuthService {
     
 }
 
-export default AuthService;
+export default new AuthService;

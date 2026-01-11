@@ -1,7 +1,6 @@
 require('dotenv').config(); 
 
 const express = require('express');
-const bodyParser = require('body-parser');
 const cors = require('cors');
 const path = require('path');
 
@@ -127,11 +126,16 @@ const walletController = new WalletController(getWalletBalance, topUpWallet);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors()); 
-app.use(bodyParser.json());
-
 // SERVIR IMÁGENES ESTÁTICAS
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+app.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+app.use(express.json());
 
 // --- RUTAS --- //
 
@@ -143,6 +147,7 @@ app.use('/api/users', userRoutes(
     { getAllUsers, updateUser, deleteUser, userRepository }, 
     AuthMiddleware
 )); 
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // 3. Colegio (Gestión Admin)
 app.use('/api/colegio', colegioRoutes(colegioController)); 
@@ -158,19 +163,18 @@ app.use('/api/wallet', walletRoutes(walletController));
 
 // Test Route
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'OK', server: 'App Cathering Backend' });
+    console.log("Health check recibido!"); // Log para ver en consola
+    res.json({ status: 'OK', server: 'Backend Cathering Funcionando 🚀' });
 });
 
-
 // --- ARRANQUE DEL SERVIDOR ---
-// Sincroniza modelos con la BD y luego inicia
 db.sync({ force: false }) 
 .then(() => {
-    console.log("Base de datos sincronizada (Sequelize).");
-    app.listen(PORT, () => {
-        console.log(`Server running on port ${PORT}`);
-    });
+    console.log("Base de datos sincronizada (Sequelize).");
+    app.listen(PORT,'0.0.0.0', () => {
+        console.log(`Server running on port ${PORT}`);
+    });
 })
 .catch((err) => {
-    console.error("Error al sincronizar base de datos:", err);
+    console.error("Error al sincronizar base de datos:", err);
 });
