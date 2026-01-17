@@ -38,7 +38,7 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(parseJwt(initialToken)); 
     const [loading, setLoading] = useState(true); 
 
-    const authService = useMemo(() => new AuthService(), []);
+    const authService = AuthService;
     
     // Servicios dependientes del token
     const userService = useMemo(() => token ? new UserService(token) : null, [token]);

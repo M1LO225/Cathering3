@@ -140,7 +140,7 @@ app.use(express.json());
 // --- RUTAS --- //
 
 // 1. Auth
-app.use('/api/auth', authRoutes(authController));
+app.use('/api', authRoutes(authController));
 
 // 2. Usuarios (Gestión Admin)
 app.use('/api/users', userRoutes(
