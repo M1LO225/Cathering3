@@ -1,8 +1,8 @@
 // src/infrastructure/routes/colegio.routes.js
 const { Router } = require('express');
 const AuthMiddleware = require('../middlewares/AuthMiddleware');
-const isColegioAdmin = require('../middlewares/isColegioAdmin');
-const validateColegio = require('../middlewares/validateColegio');
+const isColegioAdmin = require('../../../../services/catalog-service/src/middlewares/isColegioAdmin');
+const validateColegio = require('../../../../services/catalog-service/src/middlewares/validateColegio');
 
 module.exports = (colegioController) => {
     const router = Router();

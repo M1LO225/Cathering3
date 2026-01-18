@@ -1,6 +1,6 @@
 const { Router } = require('express');
-const upload = require('../middlewares/uploadMiddleware');
-const isCafeteria = require('../middlewares/isCafeteria');
+const upload = require('../../../../services/catalog-service/src/middlewares/uploadMiddleware');
+const isCafeteria = require('../../../../services/catalog-service/src/middlewares/isCafeteria');
 const AuthMiddleware = require('../middlewares/AuthMiddleware');
 
 module.exports = (productController) => {
