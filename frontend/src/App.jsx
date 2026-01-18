@@ -27,15 +27,15 @@ const Navigation = () => {
                 </>
             ) : (
                 <>
-                    {/* --- CORRECCIÓN AQUÍ: Cambiado de 'COLEGIO_ADMIN' a 'admin_colegio' --- */}
-                    {user?.role === 'admin_colegio' && (
+                    
+                    {user?.role === 'admin' && (
                         <>
                             <Link to="/manage-users">Usuarios</Link>
                             <Link to="/manage-colegio">Mi Colegio</Link>
                         </>
                     )}
                     
-                    {/* --- CORRECCIÓN: Asumiendo que cafetería también viene en minúsculas --- */}
+                    
                     {user?.role === 'cafeteria' && (
                         <>
                             <Link to="/manage-menu">Gestionar Menú</Link>
@@ -43,7 +43,7 @@ const Navigation = () => {
                         </>
                     )}
 
-                    {/* --- CORRECCIÓN: Roles de estudiante en minúsculas --- */}
+                    
                     {(user?.role === 'estudiante' || user?.role === 'personal_academico') && (
                         <>
                             <Link to="/menu">Ver Menú</Link>
@@ -86,8 +86,7 @@ const App = () => {
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/register" element={<RegisterPage />} />
                     
-                    {/* Aquí pasamos el rol permitido explícitamente para que la ruta no te bloquee */}
-                    <Route element={<ProtectedRoute allowedRoles={['admin_colegio', 'cafeteria', 'estudiante', 'personal_academico']} />}>
+                    <Route element={<ProtectedRoute allowedRoles={['admin', 'cafeteria', 'estudiante', 'personal_academico']} />}>
 
                         <Route path="/manage-users" element={<UserManagementPage />} />
                         <Route path="/manage-colegio" element={<ColegioProfilePage />} />

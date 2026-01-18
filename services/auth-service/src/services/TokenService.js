@@ -1,20 +1,19 @@
+// services/auth-service/src/services/TokenService.js
 const jwt = require('jsonwebtoken');
 
-// Aseguramos que haya un secreto, incluso si falta en el .env por error
-const JWT_SECRET = process.env.JWT_SECRET || 'secreto_super_seguro';
-
 class TokenService {
-    
-    generateToken(payload) {
-        return jwt.sign(payload, JWT_SECRET, { expiresIn: '1d' });
+    constructor() {
+        // Usa una variable de entorno o una clave por defecto para desarrollo
+        this.secret = process.env.JWT_SECRET || 'mi_secreto_super_seguro';
     }
 
-    verifyToken(token) {
-        try {
-            return jwt.verify(token, JWT_SECRET);
-        } catch (error) {
-            return null;
-        }
+    // Este es el método que LoginUser estaba buscando y no encontraba
+    generate(payload) {
+        return jwt.sign(payload, this.secret, { expiresIn: '24h' });
+    }
+
+    verify(token) {
+        return jwt.verify(token, this.secret);
     }
 }
 

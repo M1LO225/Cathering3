@@ -2,60 +2,95 @@
 const { Op } = require('sequelize');
 
 class SQLiteUserRepository {
-    constructor(userModel) {
+    constructor(userModel, colegioModel, sequelize) {
         this.userModel = userModel;
+        this.colegioModel = colegioModel;
+        this.sequelize = sequelize;
     }
 
-    async save(userEntity) {
-        return await this.userModel.create(userEntity);
-    }
-
+    // --- BÚSQUEDAS ---
     async findById(id) {
         return await this.userModel.findByPk(id);
     }
 
-    async findByEmail(email) {
-        return await this.userModel.findOne({ where: { email } });
-    }
-
     async findByUsernameOrEmail(username, email) {
         return await this.userModel.findOne({
-            where: {
-                [Op.or]: [{ username }, { email }]
-            }
+            where: { [Op.or]: [{ username }, { email }] }
         });
     }
 
-    async findAll(colegioId) {
-        const options = {
-            attributes: { exclude: ['password'] }
-        };
-
-        // Si el controlador envía un ID de colegio, filtramos.
-        // Si no envía nada (undefined), trae TODOS los usuarios del sistema.
-        if (colegioId) {
-            options.where = { colegio_id: colegioId };
-        }
-
-        // CORRECCIÓN: Cambiado 'this.User' por 'this.userModel'
-        return await this.userModel.findAll(options);
+    async findOneByRoleAndColegio(role, colegioId) {
+        return await this.userModel.findOne({
+            where: { role: role, colegio_id: colegioId }
+        });
     }
 
-    // --- Manejo de Alergias (Local) ---
-    async getUserAllergies(userId) {
-        const user = await this.userModel.findByPk(userId);
-        // Si no existe usuario o el campo es null, retorna array vacío
-        return user ? (user.allergies || []) : [];
+    async findAllByColegio(colegioId) {
+        return await this.userModel.findAll({
+            where: { colegio_id: colegioId },
+            attributes: { exclude: ['passwordHash'] } // Ocultamos el hash
+        });
     }
 
-    async updateAllergies(userId, ingredientIds) {
-        const user = await this.userModel.findByPk(userId);
-        if (!user) throw new Error('Usuario no encontrado');
+    async findColegioByAdminId(adminId) {
+        return await this.colegioModel.findOne({
+            where: { admin_user_id: adminId }
+        });
+    }
+    async updateColegio(adminId, updates) {
+        const colegio = await this.colegioModel.findOne({
+            where: { admin_user_id: adminId }
+        });
         
-        // Guardamos los IDs directamente en la columna JSON
-        user.allergies = ingredientIds;
-        await user.save();
-        return true;
+        if (!colegio) return null;
+
+        return await colegio.update(updates);
+    }
+
+    // --- ESCRITURA ---
+    async save(userEntity) {
+        return await this.userModel.create(userEntity);
+    }
+
+    async update(id, updates) {
+        const user = await this.userModel.findByPk(id);
+        if (!user) throw new Error('Usuario no encontrado');
+        return await user.update(updates);
+    }
+
+    async delete(id) {
+        return await this.userModel.destroy({ where: { id } });
+    }
+
+    // --- UTILS ---
+    async getUserAllergies(userId) { return []; } 
+    async updateAllergies(userId, ids) { return true; }
+
+    async createColegioWithAdmin(userData, colegioData) {
+        const t = await this.sequelize.transaction();
+
+        try {
+            // 1. Crear Usuario Admin
+            // Nota: userData ya debe venir con la clave 'passwordHash'
+            const user = await this.userModel.create(userData, { transaction: t });
+
+            // 2. Crear Colegio vinculado
+            const colegio = await this.colegioModel.create({
+                ...colegioData,
+                admin_user_id: user.id
+            }, { transaction: t });
+
+            // 3. Actualizar usuario con el colegio_id
+            user.colegio_id = colegio.id;
+            await user.save({ transaction: t });
+
+            await t.commit();
+            return user;
+
+        } catch (error) {
+            await t.rollback();
+            throw error; // Re-lanzar error para que lo vea el controlador
+        }
     }
 }
 

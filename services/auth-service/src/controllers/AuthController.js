@@ -1,45 +1,50 @@
 // services/auth-service/src/controllers/AuthController.js
 
 class AuthController {
-    constructor(registerUserUseCase, loginUserUseCase) {
-        this.registerUserUseCase = registerUserUseCase;
-        this.loginUserUseCase = loginUserUseCase;
+    constructor(registerUser, loginUser) {
+        this.registerUser = registerUser;
+        this.loginUser = loginUser;
     }
 
-    // --- REGISTRO PÚBLICO ---
     async register(req, res) {
         try {
             const { username, email, password, nombre, direccion, telefono, ciudad, provincia } = req.body;
-            
+
             if (!username || !email || !password) {
-                return res.status(400).json({ error: 'Faltan datos obligatorios (username, email, password).' });
+                return res.status(400).json({ error: 'Datos de usuario (username, email, password) incompletos.' });
             }
             
             const userData = { username, email, password };
             const colegioData = { nombre, direccion, telefono, ciudad, provincia };
 
-            const user = await this.registerUserUseCase.execute(userData, colegioData);
-            res.status(201).json({ message: 'Usuario registrado exitosamente.', userId: user.id });
+            // execute decidirá si llama a createColegioWithAdmin o save normal
+            const user = await this.registerUser.execute(userData, colegioData);
+            
+            res.status(201).json({ 
+                message: 'Usuario registrado exitosamente.', 
+                userId: user.id,
+                colegioId: user.colegio_id
+            });
         } catch (error) {
-            console.error("Error en register:", error);
+            console.error('SERVER REGISTER ERROR:', error); 
             const status = error.message.includes('existe') ? 409 : 500;
             res.status(status).json({ error: error.message });
         }
     }
 
-    // --- LOGIN ---
     async login(req, res) {
         try {
             const { usernameOrEmail, password } = req.body;
-            const result = await this.loginUserUseCase.execute(usernameOrEmail, password);
+            const result = await this.loginUser.execute(usernameOrEmail, password);
+            
             res.status(200).json({ 
-                message: 'Login exitoso', 
-                token: result.token, 
+                message: 'Login successful.',
+                token: result.token,
                 user: result.user 
             });
         } catch (error) {
-            console.error("Error en login:", error);
-            const status = error.message.includes('inválidas') ? 401 : 500;
+            console.error('Login Error:', error); 
+            const status = error.message.includes('credenciales') || error.message.includes('Invalid') ? 401 : 500;
             res.status(status).json({ error: error.message });
         }
     }

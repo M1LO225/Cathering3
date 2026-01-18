@@ -44,7 +44,7 @@ class AuthService {
         // Guardamos el token y devolvemos el usuario
         localStorage.setItem(TOKEN_KEY, data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
-        return data.user; 
+        return data; 
     }
 
     getToken() {

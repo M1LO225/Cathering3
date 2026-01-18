@@ -1,14 +1,17 @@
+// services/auth-service/src/services/EncryptService.js
 const bcrypt = require('bcryptjs');
-const saltRounds = 10;
 
 class EncryptService {
-    async encrypt(password) {
-        return bcrypt.hash(password, saltRounds);
+    constructor() {
+        this.saltRounds = 10;
     }
 
+    async hash(password) {
+        return await bcrypt.hash(password, this.saltRounds);
+    }
 
-    async compare(password, hash) {
-        return bcrypt.compare(password, hash);
+    async compare(plainPassword, hashedPassword) {
+        return await bcrypt.compare(plainPassword, hashedPassword);
     }
 }
 

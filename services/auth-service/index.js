@@ -4,45 +4,42 @@ const express = require('express');
 const cors = require('cors');
 const { Sequelize, DataTypes } = require('sequelize');
 
+// Importar definiciones de modelos
+const UserModelDef = require('./src/models/UserModel');
+const ColegioModelDef = require('./src/models/ColegioModel');
+
+// Importar rutas
+const authRoutes = require('./src/routes/auth.routes');
+
 const app = express();
-const PORT = process.env.PORT || 3001;
 
-app.use(express.json());
 app.use(cors());
+app.use(express.json());
 
-
-app.use((req, res, next) => {
-    console.log(`📨 Auth Service recibió: ${req.method} ${req.url}`);
-    next();
-});
-
-
+// 1. Configurar Base de Datos
 const sequelize = new Sequelize({
     dialect: 'sqlite',
-    storage: './auth_database.sqlite', // Esto creará un archivo nuevo en la raíz de la carpeta
+    storage: './database.sqlite',
     logging: false
 });
 
-// --- IMPORTAR MODELO ---
-// Asegúrate de que esta ruta apunte a donde tienes tu UserModel.js
-const UserModelDefinition = require('./src/models/UserModel'); 
-const User = UserModelDefinition(sequelize, DataTypes);
+// 2. Inicializar Modelos
+const UserModel = UserModelDef(sequelize, DataTypes);
+const ColegioModel = ColegioModelDef(sequelize, DataTypes);
 
-// --- IMPORTAR RUTAS ---
-const authRoutes = require('./src/routes/auth.routes');
+// 3. Definir Relaciones
+UserModel.hasOne(ColegioModel, { foreignKey: 'admin_user_id' });
+ColegioModel.belongsTo(UserModel, { foreignKey: 'admin_user_id' });
 
-// --- DEFINICIÓN DE RUTAS ---
-// Usamos '/' porque el Gateway ya filtró la ruta
-app.use('/', authRoutes(User));
+// 4. Sincronizar Base de Datos
+sequelize.sync()
+    .then(() => console.log('Base de datos sincronizada'))
+    .catch(err => console.error('Error al sincronizar DB:', err));
 
-// --- ARRANQUE ---
-sequelize.sync({ force: false }) 
-    .then(() => {
-        console.log('Auth DB Sincronizada (SQLite)');
-        app.listen(PORT, () => {
-            console.log(`Auth Service corriendo en puerto ${PORT}`);
-        });
-    })
-    .catch(err => {
-        console.error('Error al conectar con la base de datos:', err);
-    });
+// 5. Configurar Rutas
+app.use('/', authRoutes(UserModel, ColegioModel, sequelize));
+
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => {
+    console.log(`Auth Service corriendo en puerto ${PORT}`);
+});

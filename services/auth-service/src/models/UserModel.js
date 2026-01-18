@@ -19,28 +19,23 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING,
             allowNull: false,
             unique: true,
-            validate: { isEmail: true }
+            validate: {
+                isEmail: true
+            }
         },
-        password: {
+        // MANTENEMOS TU CAMPO ORIGINAL 'passwordHash'
+        passwordHash: {
             type: DataTypes.STRING,
             allowNull: false
         },
         role: {
             type: DataTypes.STRING,
-            defaultValue: 'user'
+            defaultValue: 'ESTUDIANTE',
+            allowNull: false
         },
         colegio_id: {
             type: DataTypes.INTEGER,
-            allowNull: true
-        },
-        saldo: {
-            type: DataTypes.FLOAT,
-            defaultValue: 0.0
-        },
-
-        allergies: {
-            type: DataTypes.JSON, // Guardará algo como: [1, 4, 10]
-            defaultValue: [] 
+            allowNull: true // Puede ser nulo si es SuperAdmin o aún no se asigna
         }
     }, {
         sequelize,
