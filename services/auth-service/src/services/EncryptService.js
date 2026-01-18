@@ -1,13 +1,13 @@
-
 const bcrypt = require('bcryptjs');
 const saltRounds = 10;
 
 class EncryptService {
-    static async hashPassword(password) {
+    async encrypt(password) {
         return bcrypt.hash(password, saltRounds);
     }
 
-    static async comparePassword(password, hash) {
+
+    async compare(password, hash) {
         return bcrypt.compare(password, hash);
     }
 }

@@ -28,7 +28,7 @@ app.use('/api/auth', createProxyMiddleware({
     target: services.auth, 
     changeOrigin: true,
     pathRewrite: {
-        '^/api/auth': '/api/auth', 
+        '^/api/auth': '', 
     },
     onError: (err, req, res) => res.status(500).json({ error: 'Auth Service Down' })
 }));

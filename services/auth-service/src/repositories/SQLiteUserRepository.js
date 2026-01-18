@@ -26,6 +26,21 @@ class SQLiteUserRepository {
         });
     }
 
+    async findAll(colegioId) {
+        const options = {
+            attributes: { exclude: ['password'] }
+        };
+
+        // Si el controlador envía un ID de colegio, filtramos.
+        // Si no envía nada (undefined), trae TODOS los usuarios del sistema.
+        if (colegioId) {
+            options.where = { colegio_id: colegioId };
+        }
+
+        // CORRECCIÓN: Cambiado 'this.User' por 'this.userModel'
+        return await this.userModel.findAll(options);
+    }
+
     // --- Manejo de Alergias (Local) ---
     async getUserAllergies(userId) {
         const user = await this.userModel.findByPk(userId);

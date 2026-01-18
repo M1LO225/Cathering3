@@ -3,61 +3,58 @@ const TOKEN_KEY = 'token';
 
 class AuthService {
 
-    /**
-     * REGISTRO ACTUALIZADO
-     * Ahora envía el formulario completo para crear Colegio + Admin
-     * @param {Object} formData (incluye user y colegio data)
-     */
-    async register(formData) {
-        const response = await fetch(`${BASE_URL}/register`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(formData), // Envía el objeto completo
-        });
-        
-        const data = await response.json();
+    /**
+     * @param {Object} formData 
+     */
+    async register(formData) {
+        const response = await fetch(`${BASE_URL}/auth/register`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData), 
+        });
+        
+        const data = await response.json();
 
-        if (!response.ok) {
-            throw new Error(data.error || 'Registration failed');
-        }
-        
-        // El backend ahora solo devuelve un mensaje de éxito, no un token
-        return data; 
-    }
+        if (!response.ok) {
+            throw new Error(data.error || 'Registration failed');
+        }
+        
+        return data; 
+    }
 
-    /**
-     * Login (sin cambios en la lógica)
-     */
-    async login(usernameOrEmail, password) {
-        const response = await fetch(`${BASE_URL}/login`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ usernameOrEmail, password }),
-        });
-        
-        const data = await response.json();
-        if (!response.ok) {
-            throw new Error(data.error || 'Login failed');
-        }
-        
-        // Guardamos el token y devolvemos el usuario
-        localStorage.setItem(TOKEN_KEY, data.token);
-        return data.user; 
-    }
+    /**
+     * Login
+     */
+    async login(usernameOrEmail, password) {
+        const response = await fetch(`${BASE_URL}/auth/login`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ usernameOrEmail, password }),
+        });
+        
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.error || 'Login failed');
+        }
+        
+        // Guardamos el token y devolvemos el usuario
+        localStorage.setItem(TOKEN_KEY, data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        return data.user; 
+    }
+
     getToken() {
         return localStorage.getItem(TOKEN_KEY);
     }
     
-
     isAuthenticated() {
         return !!this.getToken();
     }
     
-
     logout() {
         localStorage.removeItem(TOKEN_KEY);
     }
@@ -67,7 +64,6 @@ class AuthService {
         
         const defaultHeaders = {
             'Content-Type': 'application/json',
-
             'Authorization': `Bearer ${token}`, 
         };
 
@@ -80,7 +76,6 @@ class AuthService {
         });
         
         if (response.status === 401) {
-
             this.logout();
             throw new Error('Unauthorized. Session expired.');
         }
