@@ -67,6 +67,11 @@ app.use('/api/wallet', createProxyMiddleware({
     changeOrigin: true 
 }));
 
+app.use('/api/ingredients', createProxyMiddleware({ 
+    target: services.catalog,
+    changeOrigin: true 
+}));
+
 // Iniciar Gateway
 app.listen(PORT, () => {
     console.log(`API Gateway corriendo en puerto ${PORT}`);

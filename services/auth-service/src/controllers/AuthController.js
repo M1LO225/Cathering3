@@ -1,3 +1,4 @@
+// services/auth-service/src/controllers/AuthController.js
 class AuthController {
     constructor(registerUser, loginUser, userRepository) {
         this.registerUser = registerUser;
@@ -8,27 +9,19 @@ class AuthController {
     async register(req, res) {
         try {
             const { username, email, password, nombre, direccion, telefono, ciudad, provincia } = req.body;
-
             if (!username || !email || !password) {
-                return res.status(400).json({ error: 'Datos de usuario (username, email, password) incompletos.' });
+                return res.status(400).json({ error: 'Faltan datos de usuario.' });
             }
             
             const userData = { username, email, password };
             const colegioData = { nombre, direccion, telefono, ciudad, provincia };
 
             const user = await this.registerUser.execute(userData, colegioData);
-            
-            res.status(201).json({ 
-                message: 'Colegio y Admin registrados exitosamente.', 
-                userId: user.id,
-                colegioId: user.colegio_id
-            });
+            res.status(201).json({ message: 'Usuario registrado.', userId: user.id });
         } catch (error) {
-            console.error('SERVER REGISTER ERROR:', error); 
-            if (error.message.includes('exists')) {
-                return res.status(409).json({ error: error.message });
-            }
-            res.status(500).json({ error: 'Internal server error during registration.' });
+            console.error(error);
+            const status = error.message.includes('existe') ? 409 : 500;
+            res.status(status).json({ error: error.message });
         }
     }
 
@@ -36,43 +29,31 @@ class AuthController {
         try {
             const { usernameOrEmail, password } = req.body;
             const result = await this.loginUser.execute(usernameOrEmail, password);
-            
-            res.status(200).json({ 
-                message: 'Login successful.',
-                token: result.token,
-                user: result.user 
-            });
+            res.status(200).json({ message: 'Login OK', token: result.token, user: result.user });
         } catch (error) {
-            console.error('Login Error Interno:', error); 
-            if (error.message.includes('credentials')) {
-                return res.status(401).json({ error: error.message });
-            }
-            return res.status(500).json({ error: 'Internal server error during login.' });
+            console.error(error);
+            const status = error.message.includes('inválidas') ? 401 : 500;
+            res.status(status).json({ error: error.message });
         }
     }
 
     async getMyAllergies(req, res) {
-        try{
-            const userId = req.user.id;
-            const allergies = await this.userRepository.getUserAllergies(userId);
-            res.json(allergies);
+        try {
+            const allergies = await this.userRepository.getUserAllergies(req.user.id);
+            res.json(allergies); // Retorna array de IDs [1, 2, 3]
         } catch (error) {
-            console.error('Error obteniendo alergias del usuario:', error);
-            res.status(500).json({ error: 'Error interno al obtener las alergias del usuario.' });
+            res.status(500).json({ error: 'Error obteniendo alergias.' });
         }
     }
 
     async updateMyAllergies(req, res) {
         try {
-            const userId = req.user.id;
-            const { ingredientIds } = req.body;
-            
-            await this.userRepository.updateAllergies(userId, ingredientIds);
-            res.json({ message: "Alergias actualizadas correctamente." });
+            const { ingredientIds } = req.body; // Espera [1, 2]
+            await this.userRepository.updateAllergies(req.user.id, ingredientIds);
+            res.json({ message: "Alergias actualizadas." });
         } catch (error) {
             res.status(500).json({ error: error.message });
         }
     }
 }
-
 module.exports = AuthController;
