@@ -36,8 +36,8 @@ Colegio.hasMany(Product, { foreignKey: 'colegioId' });
 Product.belongsTo(Colegio, { foreignKey: 'colegioId' });
 
 // --- RUTAS ---
-const productRoutes = require('./src/routes/product.routes');
-const colegioRoutes = require('../../legacy_backend/src/infrastructure/routes/colegio.routes');
+const productRoutes = require('./src/routes/product.routes'); 
+const colegioRoutes = require('./src/routes/colegio.routes');
 const ingredientRoutes = require('./src/routes/ingredient.routes');
 
 // Inyección de Dependencias

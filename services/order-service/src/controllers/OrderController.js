@@ -91,6 +91,22 @@ class OrderController {
             res.status(500).json({ error: 'Error al actualizar estado' });
         }
     }
+    async getIncoming(req, res) {
+        try {
+            // Buscamos pedidos que no estén completados ni cancelados
+            // OJO: Ajusta los estados según lo que uses ('pending', 'paid', etc.)
+            const incomingOrders = await this.Order.findAll({
+                where: {
+                    status: ['pending', 'paid', 'ready'] // Array de estados activos
+                },
+                order: [['createdAt', 'ASC']] // Los más viejos primero
+            });
+            res.json(incomingOrders);
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ error: 'Error al obtener pedidos entrantes' });
+        }
+    }
 }
 
 module.exports = OrderController;

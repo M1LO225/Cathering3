@@ -1,21 +1,29 @@
+// services/catalog-service/src/routes/colegio.routes.js
 const { Router } = require('express');
 const AuthMiddleware = require('../middlewares/AuthMiddleware');
 const isColegioAdmin = require('../middlewares/isColegioAdmin');
-// Asegúrate de copiar este validador del legacy
-const validateColegio = require('../middlewares/validateColegio'); 
+const validateColegio = require('../middlewares/validateColegio');
 
-module.exports = (colegioController) => {
+// IMPORTANTE: Importamos la clase del controlador
+const ColegioController = require('../controllers/ColegioController');
+
+module.exports = (ColegioModel) => {
     const router = Router();
+
+    // INSTANCIAMOS EL CONTROLADOR AQUÍ
+    const controller = new ColegioController(ColegioModel);
 
     // Middleware global para estas rutas
     router.use(AuthMiddleware);
     router.use(isColegioAdmin);
 
-    router.get('/me', colegioController.getDetails.bind(colegioController));
-    
-    router.put('/me', 
+    // Rutas usando la instancia 'controller'
+    router.get('/me', controller.getDetails.bind(controller));
+
+    router.put(
+        '/me', 
         validateColegio, 
-        colegioController.updateDetails.bind(colegioController)
+        controller.updateDetails.bind(controller)
     );
 
     return router;
