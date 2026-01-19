@@ -11,8 +11,8 @@ class WalletService {
     }
 
     async getBalance() {
-        // Apuntamos a /auth/balance (Auth Service)
-        const response = await fetch(`${API_BASE_URL}/auth/balance`, {
+        // Apuntamos a /balance (Wallet Service)
+        const response = await fetch(`${API_BASE_URL}/balance`, {
             method: 'GET',
             headers: this.headers,
         });
@@ -22,8 +22,8 @@ class WalletService {
     }
 
     async recharge(amount) {
-        // Apuntamos a /auth/balance/recharge
-        const response = await fetch(`${API_BASE_URL}/auth/balance/recharge`, {
+        // Apuntamos a /toup (Wallet Service)
+        const response = await fetch(`${API_BASE_URL}/topup`, {
             method: 'POST',
             headers: this.headers,
             body: JSON.stringify({ amount }),

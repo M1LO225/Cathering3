@@ -49,7 +49,7 @@ const createWalletRoutes = require('./src/routes/wallet.routes');
 app.use('/api/orders', createOrderRoutes(Order, OrderItem, Wallet)); 
 
 // Inyectamos modelos a las rutas de Billetera
-app.use('/api/wallet', createWalletRoutes(Wallet, Transaction));
+app.use('/api/wallet', createWalletRoutes(Wallet));
 
 // 6. INICIAR SERVIDOR
 sequelize.sync({ force: false }).then(() => {

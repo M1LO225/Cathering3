@@ -14,7 +14,7 @@ module.exports = (OrderModel, OrderItemModel, WalletModel) => {
 
     router.post('/', controller.createOrder.bind(controller));
     router.get('/my-orders', controller.getMyOrders.bind(controller));
-    router.get('/incoming', controller.getIncomingOrders.bind(controller)); // Ojo con el nombre del método
+    router.get('/incoming', controller.getIncomingOrders.bind(controller));
     router.put('/:id/status', controller.updateStatus.bind(controller));
 
     return router;

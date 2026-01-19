@@ -5,9 +5,10 @@ module.exports = (sequelize, DataTypes) => {
             primaryKey: true, 
             autoIncrement: true 
         },
-        status: { 
-            type: DataTypes.ENUM('pending', 'ready', 'completed', 'cancelled'), 
-            defaultValue: 'pending' 
+        status: {
+            type: DataTypes.STRING, // Cambiamos a STRING para evitar líos con ENUMs estrictos por ahora
+            defaultValue: 'PAID',
+            allowNull: false
         },
         total: { 
             type: DataTypes.FLOAT, 
@@ -19,7 +20,8 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false 
         },
         colegioId: { 
-            type: DataTypes.INTEGER 
+            type: DataTypes.INTEGER,
+            allowNull: false
         },
         // ID de la billetera usada (opcional si pagó en efectivo)
         walletId: { 

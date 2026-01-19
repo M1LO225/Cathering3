@@ -4,138 +4,137 @@ import { useAuth } from '../hooks/useAuth';
 const CafeteriaOrdersPage = () => {
     const { orderService } = useAuth();
     const [orders, setOrders] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [errorMsg, setErrorMsg] = useState(null); // Estado para mensajes de error
+    const [errorMsg, setErrorMsg] = useState(null);
 
     const fetchOrders = async () => {
         try {
             const data = await orderService.getIncomingOrders();
-            
-            // VERIFICACIÓN DE SEGURIDAD: Asegurarse de que data sea un array
             if (Array.isArray(data)) {
                 setOrders(data);
                 setErrorMsg(null);
             } else {
-                console.error("Se esperaba un array, se recibió:", data);
-                // Si el backend manda un objeto de error, lo mostramos
-                setErrorMsg(data.error || "Error al obtener pedidos: Formato de datos inválido");
-                setOrders([]); // Ponemos lista vacía para evitar el crash
+                setOrders([]); // Evita errores si no hay datos
             }
         } catch (error) {
             console.error("Error cargando pedidos:", error);
-            setErrorMsg("Error de conexión con el servidor.");
+            setErrorMsg("No se pudo conectar con el servidor de cocina.");
         }
     };
 
+    // Auto-actualización cada 5 segundos
     useEffect(() => {
         fetchOrders();
-        const interval = setInterval(fetchOrders, 10000);
+        const interval = setInterval(fetchOrders, 5000);
         return () => clearInterval(interval);
     }, [orderService]);
 
     const changeStatus = async (orderId, newStatus) => {
-        if(!window.confirm(`¿Cambiar estado de Orden #${orderId} a ${newStatus}?`)) return;
-        setLoading(true);
+        // Optimistic UI: Actualizamos visualmente antes de confirmar
+        const previousOrders = [...orders];
+        setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+
         try {
             await orderService.updateStatus(orderId, newStatus);
+            // Si funciona, recargamos la lista real
             fetchOrders(); 
         } catch (error) {
-            alert("Error actualizando estado: " + error.message);
-        } finally {
-            setLoading(false);
+            alert("Error al cambiar estado: " + error.message);
+            setOrders(previousOrders); // Revertimos si falla
         }
     };
 
     return (
-        <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
-            <h1>Pedidos Entrantes (Cocina)</h1>
+        <div style={{ padding: '20px', maxWidth: '1000px', margin: '0 auto' }}>
+            <h1 style={{ borderBottom: '2px solid #333', paddingBottom: '10px' }}>👨‍🍳 Pedidos en Cocina</h1>
             
-            {/* Mostrar mensaje de error si existe */}
-            {errorMsg && (
-                <div style={{ padding: '10px', background: '#ffebee', color: '#d32f2f', borderRadius: '4px', marginBottom: '20px' }}>
-                    <strong>Error:</strong> {errorMsg}
-                </div>
-            )}
+            {errorMsg && <div style={{color: 'red', padding: '10px'}}>{errorMsg}</div>}
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                {!errorMsg && orders.length === 0 && (
-                    <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-                        <p>No hay pedidos pendientes por cocinar.</p>
-                    </div>
-                )}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px', marginTop: '20px' }}>
                 
-                {/* Renderizado Seguro: Solo hacemos map si orders es un array válido */}
-                {Array.isArray(orders) && orders.map(order => (
+                {orders.length === 0 && !errorMsg && (
+                    <p style={{ gridColumn: '1/-1', textAlign: 'center', fontSize: '1.2em', color: '#666' }}>
+                        No hay pedidos pendientes. ¡Todo limpio! ✨
+                    </p>
+                )}
+
+                {orders.map(order => (
                     <div key={order.id} style={{ 
-                        border: '2px solid #4caf50', 
-                        padding: '15px', 
+                        border: '1px solid #ccc', 
                         borderRadius: '8px', 
-                        background: '#f1f8e9',
-                        boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+                        overflow: 'hidden',
+                        boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
+                        backgroundColor: '#fff'
                     }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #ccc', paddingBottom: '5px', marginBottom: '10px' }}>
-                            <span style={{ fontSize: '1.1em' }}><strong>Orden #{order.id}</strong></span>
-                            <span>Cliente: <strong>{order.user?.username || 'Usuario desconocido'}</strong></span>
-                            <span style={{ 
-                                color: order.status === 'PAID' ? '#d32f2f' : 'green', 
-                                fontWeight: 'bold',
-                                background: 'white',
-                                padding: '2px 8px',
-                                borderRadius: '4px',
-                                border: '1px solid #ccc'
-                            }}>
-                                {order.status === 'PAID' ? 'NUEVO' : order.status}
+                        {/* Cabecera de la Tarjeta */}
+                        <div style={{ 
+                            background: order.status === 'PAID' ? '#ffeb3b' : (order.status === 'EN_PREPARACION' ? '#ff9800' : '#4caf50'),
+                            padding: '10px',
+                            fontWeight: 'bold',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                        }}>
+                            <span>Orden #{order.id}</span>
+                            <span style={{ fontSize: '0.8em', background: 'rgba(255,255,255,0.5)', padding: '2px 6px', borderRadius: '4px' }}>
+                                {new Date(order.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                             </span>
                         </div>
 
-                        <ul style={{ margin: '0', paddingLeft: '20px' }}>
-                            {order.items?.map(item => (
-                                <li key={item.id} style={{ marginBottom: '5px' }}>
-                                    {item.quantity}x <strong style={{ fontSize: '1.05em' }}>{item.product?.nombre || 'Producto'}</strong>
-                                    
-                                    {item.removed_ingredients && item.removed_ingredients.length > 0 && (
-                                        <div style={{ 
-                                            color: '#d32f2f', 
-                                            fontWeight: 'bold', 
-                                            fontSize: '0.9em',
-                                            marginLeft: '10px',
-                                            background: '#ffebee',
-                                            display: 'inline-block',
-                                            padding: '2px 5px',
-                                            borderRadius: '4px'
-                                        }}>
-                                            🚫 SIN: {item.removed_ingredients}
-                                        </div>
-                                    )}
-                                </li>
-                            ))}
-                        </ul>
+                        {/* Cuerpo de la Tarjeta */}
+                        <div style={{ padding: '15px' }}>
+                            <p style={{ margin: '0 0 10px 0', color: '#666', fontSize: '0.9em' }}>
+                                Cliente ID: {order.userId}
+                            </p>
+                            
+                            <ul style={{ paddingLeft: '20px', margin: '0' }}>
+                                {order.items && order.items.map((item, idx) => {
+                                    // Parsear ingredientes removidos si existen
+                                    let removed = [];
+                                    try {
+                                        if (item.removedIngredients) removed = JSON.parse(item.removedIngredients);
+                                    } catch (e) {}
 
-                        <div style={{ textAlign: 'right', marginTop: '15px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                                    return (
+                                        <li key={idx} style={{ marginBottom: '5px' }}>
+                                            <strong>{item.quantity}x</strong> {item.productName}
+                                            {removed.length > 0 && (
+                                                <div style={{ color: '#d32f2f', fontSize: '0.85em', fontWeight: 'bold' }}>
+                                                    🚫 Sin: {removed.join(', ')}
+                                                </div>
+                                            )}
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        </div>
+
+                        {/* Botones de Acción */}
+                        <div style={{ padding: '10px', borderTop: '1px solid #eee', background: '#f9f9f9', display: 'flex', gap: '5px' }}>
                             {order.status === 'PAID' && (
                                 <button 
                                     onClick={() => changeStatus(order.id, 'EN_PREPARACION')}
-                                    disabled={loading}
-                                    style={{ padding: '10px 20px', background: '#ff9800', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                                    style={{ flex: 1, padding: '8px', background: '#ff9800', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
                                 >
-                                    👨‍🍳 Empezar a Cocinar
+                                    🔥 Cocinar
                                 </button>
                             )}
-
+                            
                             {order.status === 'EN_PREPARACION' && (
                                 <button 
                                     onClick={() => changeStatus(order.id, 'LISTO')}
-                                    disabled={loading}
-                                    style={{ padding: '10px 20px', background: '#4caf50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                                    style={{ flex: 1, padding: '8px', background: '#4caf50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
                                 >
-                                    ✅ Marcar como LISTO
+                                    ✅ Listo
                                 </button>
                             )}
 
                             {order.status === 'LISTO' && (
-                                <span style={{ color: '#2e7d32', fontWeight: 'bold', padding: '8px', background: '#e8f5e9', borderRadius: '4px' }}>
-                                    🔔 Notificación enviada. Esperando retiro...
-                                </span>
+                                <button 
+                                    onClick={() => changeStatus(order.id, 'COMPLETED')}
+                                    style={{ flex: 1, padding: '8px', background: '#2196f3', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                                >
+                                    📦 Entregado
+                                </button>
                             )}
                         </div>
                     </div>

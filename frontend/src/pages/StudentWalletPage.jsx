@@ -33,9 +33,13 @@ const StudentWalletPage = () => {
     const handleRecharge = async (e) => {
         e.preventDefault();
         if (!amount || amount <= 0) return alert("Ingresa un monto válido");
-
         try {
-            await walletService.recharge(parseFloat(amount));
+            const data = await walletService.recharge(parseFloat(amount));
+            if (data && data.nuevo_saldo !== undefined) {
+                setBalance(parseFloat(data.nuevo_saldo));
+            } else {
+                loadBalance(); // Fallback si no viene el nuevo saldo
+            }
             alert("¡Recarga exitosa!");
             setAmount('');
             setCardNumber('');

@@ -87,13 +87,13 @@ const CartPage = () => {
                                 <div style={{ 
                                     color: '#d32f2f', 
                                     fontSize: '0.85em', 
-                                    background: '#ffebee', 
+                                    backgroundColor: '#ffebee', 
                                     padding: '2px 8px', 
                                     borderRadius: '4px',
                                     marginTop: '5px',
                                     display: 'inline-block'
                                 }}>
-                                    ❌ Sin: {item.removedIngredients.join(', ')}
+                                    Sin: {item.removedIngredients.join(', ')}
                                 </div>
                             )}
                         </div>
@@ -102,7 +102,7 @@ const CartPage = () => {
                             <span style={{ fontWeight: '500' }}>${(item.price * item.quantity).toFixed(2)}</span>
                             <button 
                                 onClick={() => removeFromCart(item.cartId)} 
-                                style={{ color: '#d32f2f', border: 'none', background: 'none', cursor: 'pointer', fontSize: '1.2rem' }}
+                                style={{ color: '#d32f2f', border: 'none', backgroundColor: 'none', cursor: 'pointer', fontSize: '1.2rem' }}
                                 title="Eliminar del carrito"
                             >
                                 🗑️
@@ -120,7 +120,7 @@ const CartPage = () => {
             {/* COLUMNA 2: SECCIÓN DE PAGO (BILLETERA) */}
             <div style={{ flex: 1, minWidth: '300px' }}>
                 <div style={{ 
-                    background: '#f8f9fa', 
+                    backgroundColor: '#f8f9fa', 
                     padding: '25px', 
                     borderRadius: '15px', 
                     border: '1px solid #e9ecef', 
@@ -133,7 +133,7 @@ const CartPage = () => {
                     <div style={{ 
                         marginBottom: '20px', 
                         padding: '15px', 
-                        background: 'white', 
+                        backgroundColor: 'white', 
                         borderRadius: '10px', 
                         border: '1px solid #dee2e6',
                         textAlign: 'center'
@@ -154,7 +154,7 @@ const CartPage = () => {
                             color: '#c0392b', 
                             marginBottom: '15px', 
                             fontSize: '0.9em', 
-                            background: '#fadbd8', 
+                            backgroundColor: '#fadbd8', 
                             padding: '12px', 
                             borderRadius: '8px',
                             border: '1px solid #ebccd1'
@@ -169,7 +169,7 @@ const CartPage = () => {
                         disabled={!canPay || loading} 
                         style={{ 
                             width: '100%', 
-                            background: canPay ? '#2e7d32' : '#9e9e9e',
+                            backgroundColor: canPay ? '#2e7d32' : '#9e9e9e',
                             padding: '18px',
                             fontSize: '1.1em',
                             fontWeight: 'bold',
@@ -186,7 +186,7 @@ const CartPage = () => {
                                 width: '100%', 
                                 marginTop: '15px', 
                                 padding: '12px', 
-                                background: 'none', 
+                                backgroundColor: 'none', 
                                 border: '2px solid #1976d2', 
                                 color: '#1976d2', 
                                 borderRadius: '8px', 

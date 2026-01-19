@@ -1,28 +1,42 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useAuth } from '../hooks/useAuth'; // Importamos Auth para saber quién es el usuario
 
 const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
-    const [cart, setCart] = useState(() => {
-        try {
-            const saved = localStorage.getItem('cart');
-            return saved ? JSON.parse(saved) : [];
-        } catch (e) {
-            return [];
-        }
-    });
+    const { user } = useAuth(); // Obtenemos el usuario actual
+    const [cart, setCart] = useState([]);
 
+    // 1. CARGAR CARRITO: Cada vez que cambia el usuario, cargamos SU carrito
     useEffect(() => {
-        localStorage.setItem('cart', JSON.stringify(cart));
-    }, [cart]);
+        if (user && user.id) {
+            try {
+                // Usamos una clave única: 'cart_1', 'cart_2', etc.
+                const saved = localStorage.getItem(`cart_${user.id}`);
+                setCart(saved ? JSON.parse(saved) : []);
+            } catch (e) {
+                setCart([]);
+            }
+        } else {
+            // Si no hay usuario (logout), limpiamos el estado del carrito en memoria
+            setCart([]);
+        }
+    }, [user]); // Se ejecuta cuando el usuario cambia (login/logout)
 
-    // Mantenemos tus variables: .name, .price y .id
+    // 2. GUARDAR CARRITO: Cada vez que el carrito cambia, guardamos con la clave del usuario
+    useEffect(() => {
+        if (user && user.id) {
+            localStorage.setItem(`cart_${user.id}`, JSON.stringify(cart));
+        }
+    }, [cart, user]);
+
     const addToCart = (product, removedIngredients = []) => {
+        if (!user) return alert("Inicia sesión para agregar productos");
+
         setCart(currentCart => {
-            // Creamos un ID único para el carrito que incluya la personalización
             const cartId = removedIngredients.length > 0 
                 ? `${product.id}-${removedIngredients.join('-')}` 
-                : product.id;
+                : product.id.toString(); // Aseguramos que sea string
             
             const existing = currentCart.find(item => item.cartId === cartId);
             
@@ -35,25 +49,29 @@ export const CartProvider = ({ children }) => {
             }
 
             return [...currentCart, { 
-                cartId: cartId, // Usamos este para identificar la línea en el carrito
+                cartId: cartId,
                 id: product.id,
-                name: product.name || product.nombre, // Soporta ambos por si acaso
-                price: parseFloat(product.price || product.precio), 
+                name: product.name || product.nombre,
+                price: parseFloat(product.price || product.precio),
                 quantity: 1,
                 image: product.imageUrl || product.imagen_url,
-                removedIngredients: removedIngredients 
+                removedIngredients: removedIngredients
             }];
         });
     };
 
-    // Usamos cartId para borrar la línea específica
     const removeFromCart = (cartId) => {
         setCart(current => current.filter(item => item.cartId !== cartId));
     };
 
-    const clearCart = () => setCart([]);
+    const clearCart = () => {
+        setCart([]);
+        // También limpiamos el localStorage específico
+        if (user && user.id) {
+            localStorage.removeItem(`cart_${user.id}`);
+        }
+    };
 
-    // ESTA ES LA CLAVE: El total ahora sí sumará correctamente usando .price
     const total = cart.reduce((sum, item) => {
         const price = parseFloat(item.price) || 0;
         return sum + (price * item.quantity);
