@@ -4,71 +4,55 @@ class WalletController {
         this.Transaction = TransactionModel;
     }
 
+    // El estudiante ve su saldo
     async getBalance(req, res) {
         try {
             const userId = req.user.id;
             
-            // Buscar billetera o crearla si no existe (lazy creation)
-            const [wallet, created] = await this.Wallet.findOrCreate({
+            // Busca la billetera, si no existe la crea en 0 (Lazy initialization)
+            const [wallet] = await this.Wallet.findOrCreate({
                 where: { userId },
-                defaults: { balance: 0.00 }
+                defaults: { balance: 0.00 } // Asegúrate de usar 'saldo' o 'balance' consistentemente en tu modelo
             });
 
-            res.json(wallet);
+            res.json({ saldo: wallet.saldo }); // O wallet.balance según tu modelo
         } catch (error) {
             console.error(error);
             res.status(500).json({ error: 'Error al obtener saldo' });
         }
     }
 
+    // El estudiante recarga dinero (SUMA)
     async topUp(req, res) {
-        try {
-            const userId = req.user.id; // Ojo: Normalmente recarga un Admin, ajusta según tu lógica
-            const { amount } = req.body;
+    try {
+        const userId = req.user.id;
+        const { amount } = req.body;
 
-            if (amount <= 0) return res.status(400).json({ error: 'Monto inválido' });
+        console.log(`💰 INTENTO DE RECARGA RECIBIDO EN PUERTO 3003`);
+        console.log(`👤 Usuario ID: ${userId} | Monto: ${amount}`);
 
-            const wallet = await this.Wallet.findOne({ where: { userId } });
-            if (!wallet) return res.status(404).json({ error: 'Billetera no encontrada' });
+        if (!amount || amount <= 0) return res.status(400).json({ error: 'Monto inválido' });
 
-            // Actualizar saldo
-            wallet.balance += parseFloat(amount);
-            await wallet.save();
+        const [wallet] = await this.Wallet.findOrCreate({
+            where: { user_id: userId }, // Asegúrate que en tu modelo sea user_id (con guion bajo) o userId
+            defaults: { saldo: 0.00 }
+        });
 
-            // Registrar transacción (Si TransactionModel fue inyectado)
-            if (this.Transaction) {
-                await this.Transaction.create({
-                    walletId: wallet.id,
-                    type: 'TOPUP',
-                    amount: amount,
-                    description: 'Recarga de saldo'
-                });
-            }
+        console.log(`📉 Saldo Anterior: ${wallet.saldo}`);
 
-            res.json({ message: 'Recarga exitosa', balance: wallet.balance });
-        } catch (error) {
-            res.status(500).json({ error: 'Error al recargar saldo' });
-        }
-    }
-    
-    async getTransactions(req, res) {
-        try {
-            const userId = req.user.id;
-            const wallet = await this.Wallet.findOne({ where: { userId } });
-            
-            if (!wallet) return res.json([]); // Sin billetera, sin movimientos
+        // Sumar asegurando números
+        const nuevoSaldo = parseFloat(wallet.saldo) + parseFloat(amount);
+        
+        // Actualizar
+        wallet.saldo = nuevoSaldo;
+        await wallet.save();
 
-            if (this.Transaction) {
-                const transactions = await this.Transaction.findAll({
-                    where: { walletId: wallet.id },
-                    order: [['createdAt', 'DESC']]
-                });
-                return res.json(transactions);
-            }
-            
-            res.json([]);
-        } catch (error) {
-            res.status(500).json({ error: 'Error al obtener movimientos' });
+        console.log(`📈 Nuevo Saldo Guardado: ${wallet.saldo}`);
+
+        res.json({ message: 'Recarga exitosa', nuevo_saldo: wallet.saldo });
+    } catch (error) {
+        console.error("❌ Error en topUp:", error);
+        res.status(500).json({ error: 'Error al recargar saldo' });
         }
     }
 }

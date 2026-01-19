@@ -1,3 +1,4 @@
+// order-service/src/index.js
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -9,52 +10,51 @@ const PORT = process.env.PORT || 3003;
 app.use(cors());
 app.use(express.json());
 
-// DB
+// 1. CONFIGURACIÓN DB
 const sequelize = new Sequelize({
     dialect: 'sqlite',
     storage: './orders_database.sqlite',
     logging: false
 });
 
-// MODELOS
-const Order = sequelize.define('Order', {
-    id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    userId: { type: DataTypes.INTEGER, allowNull: false },
-    colegioId: { type: DataTypes.INTEGER, allowNull: false },
-    total: { type: DataTypes.FLOAT, allowNull: false },
-    status: { type: DataTypes.STRING, defaultValue: 'PENDING' },
-    date: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
-});
+// 2. IMPORTAR DEFINICIONES DE MODELOS
+// (Asegúrate de que las rutas sean correctas según tu estructura de carpetas)
+const OrderModelDef = require('./src/models/OrderModel');
+const OrderItemModelDef = require('./src/models/OrderItemModel');
+const WalletModelDef = require('./src/models/WalletModel');
+const TransactionModelDef = require('./src/models/TransactionModel');
 
-const OrderItem = sequelize.define('OrderItem', {
-    productName: { type: DataTypes.STRING, allowNull: false },
-    quantity: { type: DataTypes.INTEGER, allowNull: false },
-    price: { type: DataTypes.FLOAT, allowNull: false }
-});
+// 3. INICIALIZAR MODELOS
+const Order = OrderModelDef(sequelize, DataTypes);
+const OrderItem = OrderItemModelDef(sequelize, DataTypes);
+const Wallet = WalletModelDef(sequelize, DataTypes);
+const Transaction = TransactionModelDef(sequelize, DataTypes);
 
-// Relaciones
-Order.hasMany(OrderItem, { as: 'items', foreignKey: 'OrderId' }); 
+// 4. DEFINIR RELACIONES
+// Ordenes e Items
+Order.hasMany(OrderItem, { as: 'items', foreignKey: 'OrderId' });
 OrderItem.belongsTo(Order, { foreignKey: 'OrderId' });
 
-// Middleware de Auth (Copia el de Catalog a src/middlewares/AuthMiddleware.js)
-// Si no tienes el archivo, créalo igual que en Catalog Service.
-const AuthMiddleware = require('./src/middlewares/AuthMiddleware');
+// Billetera y Transacciones
+Wallet.hasMany(Transaction, { as: 'transactions', foreignKey: 'walletId' });
+Transaction.belongsTo(Wallet, { foreignKey: 'walletId' });
 
-// Controlador
-const OrderController = require('./src/controllers/OrderController');
-const controller = new OrderController(Order, OrderItem);
+// 5. CONFIGURAR RUTAS
+// Importamos los creadores de rutas
+const createOrderRoutes = require('./src/routes/order.routes'); // Asegúrate que este archivo exista y exporte una función
+const createWalletRoutes = require('./src/routes/wallet.routes');
 
-// RUTAS
-const router = express.Router();
-router.post('/', AuthMiddleware, controller.createOrder.bind(controller));
-router.get('/incoming', AuthMiddleware, controller.getIncomingOrders.bind(controller));
-router.put('/:id/status', AuthMiddleware, controller.updateStatus.bind(controller));
+// Inyectamos modelos necesarios a las rutas de Órdenes (Ahora Order necesita Wallet para cobrar)
+// NOTA: Pasamos Wallet a las rutas de Order para poder validar saldo en el OrderController
+app.use('/api/orders', createOrderRoutes(Order, OrderItem, Wallet)); 
 
-app.use('/', router); 
+// Inyectamos modelos a las rutas de Billetera
+app.use('/api/wallet', createWalletRoutes(Wallet, Transaction));
 
-sequelize.sync().then(() => {
-    console.log('Order DB Sincronizada');
+// 6. INICIAR SERVIDOR
+sequelize.sync({ force: false }).then(() => {
+    console.log('Base de datos sincronizada (Orders + Wallets)');
     app.listen(PORT, () => {
-        console.log(`Order Service corriendo en puerto ${PORT}`);
+        console.log(`Order Service corriendo en el puerto ${PORT}`);
     });
-});
+}).catch(err => console.error("Error al iniciar DB:", err));

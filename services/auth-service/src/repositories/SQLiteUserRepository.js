@@ -109,6 +109,8 @@ class SQLiteUserRepository {
             throw error; // Re-lanzar error para que lo vea el controlador
         }
     }
+
+    
 }
 
 module.exports = SQLiteUserRepository;

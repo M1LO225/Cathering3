@@ -35,7 +35,6 @@ module.exports = (sequelize) => {
             type: DataTypes.INTEGER,
             allowNull: true 
         },
-        // 🔥 AQUÍ ESTÁ LA CLAVE: Agregado correctamente a la definición real
         allergies: {
             type: DataTypes.TEXT, 
             defaultValue: '[]',

@@ -1,23 +1,22 @@
+// order-service/src/routes/wallet.routes.js
 const { Router } = require('express');
 const AuthMiddleware = require('../middlewares/AuthMiddleware');
+const WalletController = require('../controllers/WalletController');
 
 module.exports = (WalletModel, TransactionModel) => {
     const router = Router();
     
-    // Importar e instanciar controlador
-    const WalletController = require('../controllers/WalletController');
+    // Instanciamos el controlador inyectando los modelos
     const controller = new WalletController(WalletModel, TransactionModel);
 
     router.use(AuthMiddleware);
 
-    // Obtener saldo
+    // GET /api/wallet/balance -> Obtener saldo
     router.get('/balance', controller.getBalance.bind(controller));
-    
-    // Recargar saldo (TopUp)
+
+    // POST /api/wallet/topup -> Recargar saldo
     router.post('/topup', controller.topUp.bind(controller));
     
-    // Ver historial de transacciones
-    router.get('/transactions', controller.getTransactions.bind(controller));
 
     return router;
 };
