@@ -1,29 +1,54 @@
-import React, { createContext, useContext, useState, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
-    const [cart, setCart] = useState([]);
+    // Inicializamos desde localStorage para no perder el carrito al recargar
+    const [cart, setCart] = useState(() => {
+        try {
+            const saved = localStorage.getItem('cart');
+            return saved ? JSON.parse(saved) : [];
+        } catch (e) {
+            return [];
+        }
+    });
 
-    // Agregar al carrito con personalización
-    const addToCart = (product, removedIngredients = []) => {
-        const newItem = {
-            ...product,
-            cartId: Date.now(), // ID único para el carrito (por si pide 2 hamburguesas iguales pero una sin queso)
-            removedIngredients // Array de nombres: ['Maní', 'Queso']
-        };
-        setCart([...cart, newItem]);
+    // Guardar en localStorage cada vez que cambie
+    useEffect(() => {
+        localStorage.setItem('cart', JSON.stringify(cart));
+    }, [cart]);
+
+    const addToCart = (product) => {
+        setCart(currentCart => {
+            const existing = currentCart.find(item => item.id === product.id);
+            if (existing) {
+                return currentCart.map(item => 
+                    item.id === product.id 
+                        ? { ...item, quantity: item.quantity + 1 }
+                        : item
+                );
+            }
+            return [...currentCart, { 
+                id: product.id,
+                name: product.name,
+                price: parseFloat(product.price), // Asegurar número
+                quantity: 1,
+                image: product.imageUrl 
+            }];
+        });
     };
 
-    const removeFromCart = (cartId) => {
-        setCart(cart.filter(item => item.cartId !== cartId));
+    const removeFromCart = (productId) => {
+        setCart(current => current.filter(item => item.id !== productId));
     };
 
     const clearCart = () => setCart([]);
 
-    const total = useMemo(() => {
-        return cart.reduce((acc, item) => acc + item.precio, 0);
-    }, [cart]);
+    // Calculamos el total asegurando que price sea número
+    const total = cart.reduce((sum, item) => {
+        const price = parseFloat(item.price) || 0;
+        return sum + (price * item.quantity);
+    }, 0);
 
     return (
         <CartContext.Provider value={{ cart, addToCart, removeFromCart, clearCart, total }}>

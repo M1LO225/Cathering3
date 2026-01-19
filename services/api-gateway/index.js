@@ -1,4 +1,3 @@
-// services/api-gateway/index.js
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -9,70 +8,51 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 
-// --- HEALTH CHECK ---
-app.get('/api/health', (req, res) => {
-    res.json({ status: 'OK', server: 'API Gateway Microservices' });
-});
-
-// --- DEFINICIÓN DE SERVICIOS (Discovery) ---
 const services = {
-    auth: 'http://localhost:3001',   // Auth Service
-    catalog: 'http://localhost:3002', // Catalog Service
-    orders: 'http://localhost:3003'   // Order Service
+    auth: 'http://localhost:3001',   
+    catalog: 'http://localhost:3002', 
+    orders: 'http://localhost:3003'  
 };
 
-// --- ENRUTAMIENTO (PROXY) ---
-
-// 1. Rutas de Autenticación y Usuarios -> Auth Service
-app.use('/api/auth', createProxyMiddleware({ 
-    target: services.auth, 
-    changeOrigin: true,
-    pathRewrite: {
-        '^/api/auth': '', 
-    },
-    onError: (err, req, res) => res.status(500).json({ error: 'Auth Service Down' })
-}));
-
-app.use('/api/users', createProxyMiddleware({ 
+// 1. Auth & Users & WALLET
+app.use(['/api/auth', '/api/users', '/api/wallet'], createProxyMiddleware({ 
     target: services.auth, 
     changeOrigin: true,
     onError: (err, req, res) => res.status(500).json({ error: 'Auth Service Down' })
 }));
 
-// 2. Rutas de Productos y Colegios -> Catalog Service
 app.use('/api/products', createProxyMiddleware({ 
     target: services.catalog, 
-    changeOrigin: true 
+    changeOrigin: true,
+    pathRewrite: {
+        '^/api/products': '', // Elimina /api/products de la URL
+    },
+    onError: (err, req, res) => res.status(500).json({ error: 'Catalog Service Down' })
 }));
 
-app.use('/api/colegio', createProxyMiddleware({ 
+app.use(['/api/colegio', '/api/ingredients'], createProxyMiddleware({ 
     target: services.catalog, 
-    changeOrigin: true 
+    changeOrigin: true,
+    onError: (err, req, res) => res.status(500).json({ error: 'Catalog Service Down' })
 }));
 
-// Redirigir imágenes subidas al servicio de catálogo
+// Servir Imágenes (Uploads)
 app.use('/uploads', createProxyMiddleware({ 
     target: services.catalog, 
     changeOrigin: true 
 }));
 
-// 3. Rutas de Pedidos y Billetera -> Order Service
+// 3. Orders (Solo Pedidos)
 app.use('/api/orders', createProxyMiddleware({ 
     target: services.orders, 
-    changeOrigin: true 
+    changeOrigin: true,
+    pathRewrite: {
+        '^/api/orders': '', // Limpia la URL para que llegue '/' al servicio 3003
+    },
+    onError: (err, req, res) => res.status(500).json({ error: 'Order Service Down' })
 }));
 
-app.use('/api/wallet', createProxyMiddleware({ 
-    target: services.orders, 
-    changeOrigin: true 
-}));
-
-app.use('/api/ingredients', createProxyMiddleware({ 
-    target: services.catalog,
-    changeOrigin: true 
-}));
-
-// Iniciar Gateway
+// Iniciar Gateway (Solo una vez)
 app.listen(PORT, () => {
     console.log(`API Gateway corriendo en puerto ${PORT}`);
     console.log(`Redirigiendo tráfico a microservicios internos...`);

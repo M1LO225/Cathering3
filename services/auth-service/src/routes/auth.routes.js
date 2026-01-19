@@ -42,7 +42,9 @@ module.exports = (UserModel, ColegioModel, sequelize) => {
     router.get('/users', authMiddleware, userController.listUsers.bind(userController));
     router.get('/colegio', authMiddleware, userController.getColegio.bind(userController));
     router.put('/colegio', authMiddleware, userController.updateColegio.bind(userController));
-
+    router.get('/allergies', authMiddleware, userController.getAllergies.bind(userController));
+    router.put('/allergies', authMiddleware, userController.updateAllergies.bind(userController));
+    
     // Crear Roles
     router.post('/users/cafeteria', authMiddleware, (req, res) => userController.createUserByAdmin(req, res, 'cafeteria'));
     router.post('/users/estudiante', authMiddleware, (req, res) => userController.createUserByAdmin(req, res, 'estudiante'));

@@ -1,159 +1,120 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { useCart } from '../context/CartContext';
+import { useCart } from '../context/CartContext'; 
 import Button from '../components/common/Button';
-import { Link } from 'react-router-dom';
 
 const StudentMenuPage = () => {
-    const { productService, userService } = useAuth(); 
-    const { addToCart, cart } = useCart(); // Hook del carrito (agregamos 'cart' para el contador)
-    
-    const [products, setProducts] = useState([]);
-    const [myAllergies, setMyAllergies] = useState([]); 
+    const { productService, user } = useAuth();
+    const { addToCart } = useCart();
+    const [menu, setMenu] = useState([]);
     const [loading, setLoading] = useState(true);
-
-    // Estado para el Modal de Conflicto
-    const [conflictProduct, setConflictProduct] = useState(null);
-    const [conflictIngredient, setConflictIngredient] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const [menuData, allergiesData] = await Promise.all([
-                    productService.getMenu(),
-                    userService.getMyAllergies()
-                ]);
-                setProducts(menuData);
-                setMyAllergies(allergiesData);
-            } catch (error) {
-                console.error(error);
-            } finally {
-                setLoading(false);
+        if (productService) {
+            fetchMenu();
+        }
+    }, [productService]);
+
+    const fetchMenu = async () => {
+        try {
+            const data = await productService.getMenu();
+            
+            if (Array.isArray(data)) {
+                setMenu(data);
+            } else {
+                setMenu([]);
             }
-        };
-        fetchData();
-    }, [productService, userService]);
-
-    const checkAllergyRisk = (product) => {
-        if (!product.ingredientes || !myAllergies.length) return null;
-        const myAllergyIds = myAllergies.map(a => a.id);
-        // Retorna TODOS los ingredientes conflictivos
-        return product.ingredientes.filter(ing => myAllergyIds.includes(ing.id));
-    };
-
-    const handlePreAdd = (product) => {
-        const risks = checkAllergyRisk(product);
-
-        if (risks && risks.length > 0) {
-            // Si hay riesgo, abrimos el modal para decidir
-            setConflictIngredient(risks);
-            setConflictProduct(product);
-        } else {
-            // Si no hay riesgo, agregamos directo
-            addToCart(product, []);
-            alert("Producto agregado.");
+        } catch (error) {
+            console.error("Error loading menu:", error);
+        } finally {
+            setLoading(false);
         }
     };
 
-    const handleCustomizeAdd = () => {
-        // El usuario decidió quitar los ingredientes malos
-        const ingredientsToRemove = conflictIngredient.map(i => i.nombre);
-        addToCart(conflictProduct, ingredientsToRemove);
-        
-        setConflictProduct(null);
-        setConflictIngredient(null);
-        alert("Producto agregado SIN los ingredientes alérgicos.");
+    const handleAddToCart = (product) => {
+        addToCart(product);
+        alert(`${product.name} added to cart!`);
     };
 
-    if (loading) return <div style={{padding: 20}}>Cargando menú...</div>;
+    const filteredMenu = menu.filter(item => 
+        item.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    if (loading) return <div style={{padding: '20px'}}>Loading menu...</div>;
 
     return (
         <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
-            <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <h1>Menú del Día</h1>
-                {/* BOTÓN DE CARRITO */}
-                <Link to="/cart" style={{ textDecoration: 'none', color: 'inherit' }}>
-                    <div style={{ 
-                        background: '#ff9800', 
-                        color: 'white',
-                        padding: '10px 20px', 
-                        borderRadius: '20px',
-                        cursor: 'pointer',
-                        fontWeight: 'bold',
-                        boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
-                    }}>
-                        🛒 Ir a Pagar: <strong>{cart.length}</strong> ítems
-                    </div>
-                </Link>
+            <header style={{ marginBottom: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h1>School Menu</h1>
+                <input 
+                    type="text" 
+                    placeholder="Search food..." 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    style={{ padding: '10px', width: '300px', borderRadius: '5px', border: '1px solid #ccc' }}
+                />
             </header>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '20px' }}>
-                {products.map(product => {
-                    const risks = checkAllergyRisk(product);
-                    const hasRisk = risks && risks.length > 0;
 
-                    return (
-                        <div key={product.id} style={{ border: '1px solid #ddd', borderRadius: '12px', padding: '0', overflow: 'hidden', position: 'relative', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}>
-                            
-                            {/* 1. ALERTA DE ALÉRGENOS */}
-                            {hasRisk && (
-                                <div style={{ background: '#ffeb3b', padding: '5px', fontSize: '0.8em', textAlign: 'center', fontWeight: 'bold' }}>
-                                    Contiene alérgenos
+            {filteredMenu.length === 0 ? (
+                <p>No products available at this time.</p>
+            ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '25px' }}>
+                    {filteredMenu.map(product => (
+                        <div key={product.id} style={{ 
+                            border: '1px solid #e0e0e0', 
+                            borderRadius: '10px', 
+                            overflow: 'hidden', 
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                            display: 'flex',
+                            flexDirection: 'column'
+                        }}>
+                            <img 
+                                src={product.imageUrl} 
+                                alt={product.name} 
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                onError={(e) => {
+                                    e.target.onerror = null; 
+                                    // Esta cadena larga es una imagen gris generada por código. No necesita internet.
+                                    e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='200' viewBox='0 0 300 200'%3E%3Crect fill='%23cccccc' width='300' height='200'/%3E%3Ctext fill='%23969696' font-family='sans-serif' font-size='20' dy='10.5' font-weight='bold' x='50%25' y='50%25' text-anchor='middle'%3ENo Image%3C/text%3E%3C/svg%3E";
+                                }}
+                            />
+
+                            <div style={{ padding: '15px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '10px' }}>
+                                    <h3 style={{ margin: 0, fontSize: '1.2rem' }}>{product.name}</h3>
+                                    <span style={{ 
+                                        backgroundColor: '#e3f2fd', 
+                                        color: '#1565c0', 
+                                        padding: '4px 8px', 
+                                        borderRadius: '15px', 
+                                        fontSize: '0.8rem', 
+                                        fontWeight: 'bold' 
+                                    }}>
+                                        ${product.price}
+                                    </span>
                                 </div>
-                            )}
-
-                            {/* 2. IMAGEN DEL PRODUCTO (Aquí estaba el error antes) */}
-                            <div style={{ height: '150px', overflow: 'hidden', background: '#f9f9f9' }}>
-                                <img 
-                                    src={`http://localhost:3000${product.imagen_url}`} 
-                                    alt={product.nombre} 
-                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                    onError={(e) => {e.target.src = 'https://via.placeholder.com/300?text=Sin+Imagen'}}
-                                />
-                            </div>
-
-                            {/* 3. DETALLES */}
-                            <div style={{ padding: '15px' }}>
-                                <h3 style={{ margin: '0 0 5px 0' }}>{product.nombre}</h3>
-                                <p style={{ color: '#666', fontSize: '0.9em', margin: '0 0 10px 0' }}>{product.descripcion}</p>
                                 
-                                {/* Ingredientes (Tags) */}
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '15px' }}>
-                                    {product.ingredientes?.map(ing => (
-                                        <span key={ing.id} style={{ background: '#eee', fontSize: '0.7em', padding: '2px 6px', borderRadius: '4px' }}>
-                                            {ing.nombre}
-                                        </span>
-                                    ))}
-                                </div>
+                                <p style={{ color: '#666', fontSize: '0.9rem', marginBottom: '15px', flex: 1 }}>
+                                    {product.description}
+                                </p>
 
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontWeight: 'bold', fontSize: '1.1em', color: '#2e7d32' }}>${product.precio}</span>
-                                    <Button onClick={() => handlePreAdd(product)}>
-                                        {hasRisk ? 'Ver Opciones' : 'Agregar'}
-                                    </Button>
-                                </div>
+                                {product.ingredients && (
+                                    <p style={{ fontSize: '0.8rem', color: '#888', marginBottom: '15px' }}>
+                                        <em>Ingredients: {product.ingredients}</em>
+                                    </p>
+                                )}
+
+                                <Button 
+                                    onClick={() => handleAddToCart(product)}
+                                    style={{ width: '100%' }}
+                                    disabled={product.stock <= 0}
+                                >
+                                    {product.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
+                                </Button>
                             </div>
                         </div>
-                    );
-                })}
-            </div>
-
-            {/* MODAL DE PERSONALIZACIÓN */}
-            {conflictProduct && (
-                <div style={{ position: 'fixed', top:0, left:0, width:'100%', height:'100%', background:'rgba(0,0,0,0.8)', display:'flex', justifyContent:'center', alignItems:'center', zIndex: 100 }}>
-                    <div style={{ background:'white', padding:'30px', borderRadius:'10px', maxWidth:'400px' }}>
-                        <h2 style={{ color: '#d32f2f', marginTop: 0 }}>⚠️ ¡Alerta de Alergia!</h2>
-                        <p>El plato <strong>{conflictProduct.nombre}</strong> contiene:</p>
-                        <ul>
-                            {conflictIngredient.map(i => <li key={i.id}><strong>{i.nombre}</strong></li>)}
-                        </ul>
-                        <p>¿Deseas pedirlo <strong>SIN</strong> estos ingredientes?</p>
-                        
-                        <div style={{ display:'flex', gap:'10px', marginTop:'20px', justifyContent: 'flex-end' }}>
-                            <Button onClick={() => setConflictProduct(null)} style={{ background:'#999' }}>Cancelar</Button>
-                            <Button onClick={handleCustomizeAdd}>Sí, quitar ingredientes</Button>
-                        </div>
-                    </div>
+                    ))}
                 </div>
             )}
         </div>

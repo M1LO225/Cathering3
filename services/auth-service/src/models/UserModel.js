@@ -2,7 +2,15 @@
 const { Model } = require('sequelize');
 
 module.exports = (sequelize, DataTypes) => {
-    class User extends Model {}
+    const User = sequelize.define('User', {
+        // ... id, username, password, role, etc ...
+        // Agrega esto:
+        allergies: {
+            type: DataTypes.TEXT, // Guardaremos JSON string: "['Maní', 'Leche']"
+            defaultValue: '[]'
+        },
+        // ... colegio_id, saldo ...
+    });
 
     User.init({
         id: {
@@ -43,6 +51,7 @@ module.exports = (sequelize, DataTypes) => {
         tableName: 'users',
         timestamps: true
     });
+
 
     return User;
 };

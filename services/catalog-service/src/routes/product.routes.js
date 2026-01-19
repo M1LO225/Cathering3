@@ -2,25 +2,17 @@ const { Router } = require('express');
 const upload = require('../middlewares/uploadMiddleware');
 const isCafeteria = require('../middlewares/isCafeteria');
 const AuthMiddleware = require('../middlewares/AuthMiddleware');
-
-// Importamos la clase del controlador
 const ProductController = require('../controllers/ProductController');
 
-module.exports = (ProductModel) => {
+module.exports = (ProductModel, ColegioModel) => {
     const router = Router();
-    
-    // Instanciamos el controlador pasándole el modelo
-    const controller = new ProductController(ProductModel);
+    const controller = new ProductController(ProductModel, ColegioModel);
 
-    // --- RUTAS PÚBLICAS ---
-    // CAMBIO CLAVE: Usamos .getAll en lugar de .list
-    router.get('/menu', controller.getAll.bind(controller)); 
-    router.get('/', controller.getAll.bind(controller));
-    
-    // Para el menú de estudiantes, por ahora usamos getAll también para que no falle
-    router.get('/student-menu', controller.getAll.bind(controller));
+    // GET / 
+    router.get('/ingredients', AuthMiddleware, controller.getIngredients.bind(controller));
+    router.get('/', AuthMiddleware, controller.getAll.bind(controller));
 
-    // --- RUTAS PROTEGIDAS ---
+    // POST /
     router.post(
         '/', 
         AuthMiddleware, 
@@ -29,6 +21,7 @@ module.exports = (ProductModel) => {
         controller.create.bind(controller)
     );
     
+    // DELETE /:id
     router.delete(
         '/:id', 
         AuthMiddleware, 

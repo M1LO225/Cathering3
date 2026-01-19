@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const { Sequelize, DataTypes } = require('sequelize');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -10,23 +11,25 @@ const PORT = process.env.PORT || 3002;
 app.use(cors());
 app.use(express.json());
 
-// --- SERVIR IMÁGENES (Vital para el Frontend) ---
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
 
-// --- BASE DE DATOS PROPIA ---
+app.use('/uploads', express.static(uploadDir));
+
+// --- BASE DE DATOS ---
 const sequelize = new Sequelize({
     dialect: 'sqlite',
-    storage: './catalog_database.sqlite', // DB aislada
+    storage: './catalog_database.sqlite', 
     logging: false
 });
 
-// --- IMPORTAR TUS MODELOS (Los copiaremos en el paso 3) ---
+// Importar Modelos
 const ProductDef = require('./src/models/ProductModel');
 const ColegioDef = require('./src/models/ColegioModel');
 const IngredientDef = require('./src/models/IngredientModel');
-// const IngredientDef = require('./src/models/IngredientModel'); // Descomenta si lo usas
 
-// Inicializar
 const Product = ProductDef(sequelize, DataTypes);
 const Colegio = ColegioDef(sequelize, DataTypes);
 const Ingredient = IngredientDef(sequelize, DataTypes);
@@ -35,20 +38,12 @@ const Ingredient = IngredientDef(sequelize, DataTypes);
 Colegio.hasMany(Product, { foreignKey: 'colegioId' });
 Product.belongsTo(Colegio, { foreignKey: 'colegioId' });
 
-// --- RUTAS ---
-const productRoutes = require('./src/routes/product.routes'); 
-const colegioRoutes = require('./src/routes/colegio.routes');
-const ingredientRoutes = require('./src/routes/ingredient.routes');
+// Rutas
+const productRoutes = require('./src/routes/product.routes');
 
-// Inyección de Dependencias
-app.use('/api/products', productRoutes(Product));
-app.use('/api/colegio', colegioRoutes(Colegio));
-app.use('/api/ingredients', ingredientRoutes(Ingredient));
+// Inyección de modelos
+app.use('/', productRoutes(Product, Colegio));
 
-// --- ARRANQUE ---
-sequelize.sync({ force: false }).then(() => {
-    console.log('Catalog DB Sincronizada');
-    app.listen(PORT, () => {
-        console.log(`Catalog Service corriendo en puerto ${PORT}`);
-    });
+app.listen(PORT, () => {
+    console.log(`Catalog Service corriendo en puerto ${PORT}`);
 });

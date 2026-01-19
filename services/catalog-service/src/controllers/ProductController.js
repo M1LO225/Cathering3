@@ -1,78 +1,151 @@
-// services/catalog-service/src/controllers/ProductController.js
-
+const { Op } = require('sequelize');
 class ProductController {
-    constructor(ProductModel) {
-        this.Product = ProductModel;
+    constructor(ProductModel, ColegioModel) {
+        this.ProductModel = ProductModel;
+        this.ColegioModel = ColegioModel;
     }
 
-    // --- MÉTODOS ESTÁNDAR ---
+    async getAll(req, res) {
+        try {
+            const user = req.user;
+            // Filtro básico por colegio
+            let whereClause = {};
 
-    // Crear producto
+            if (user && user.colegio_id) {
+                whereClause.colegioId = user.colegio_id;
+            } else if (req.query.colegioId) {
+                whereClause.colegioId = req.query.colegioId;
+            } else {
+                return res.status(400).json({ error: "School ID required." });
+            }
+
+            if (user && user.role === 'estudiante') {
+                const today = new Date();
+                const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
+                
+                whereClause[Op.and] = [
+                    { 
+                        [Op.or]: [
+                            { availableFrom: null }, // Siempre disponible
+                            { availableFrom: { [Op.lte]: todayStr } } // O disponible desde hoy/antes
+                        ]
+                    }
+                ];
+            }
+
+            const products = await this.ProductModel.findAll({ where: whereClause });
+            
+            // Mapeo de imagen
+            const productsWithImages = products.map(p => {
+                const json = p.toJSON();
+                if (json.image) json.imageUrl = `http://localhost:3000/uploads/${json.image}`;
+                return json;
+            });
+
+            res.json(productsWithImages);
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ error: 'Error fetching products' });
+        }
+    }
+
     async create(req, res) {
         try {
-            // Nota: req.file viene de Multer (si subiste imagen)
-            const imagePath = req.file ? `/uploads/${req.file.filename}` : null;
+            const { 
+                name, description, price, stock, 
+                preparationTime, category, ingredients, availableFrom 
+            } = req.body;
             
-            const { nombre, descripcion, precio, tiempo_prep, stock, colegioId } = req.body;
+            const file = req.file; 
+            const user = req.user;
 
-            const newProduct = await this.Product.create({
-                nombre,
-                descripcion,
-                precio,
-                tiempo_prep,
+            if (!user || !user.colegio_id) {
+                return res.status(403).json({ error: 'User has no school assigned.' });
+            }
+
+            let colegio = await this.ColegioModel.findByPk(user.colegio_id);
+            
+            if (!colegio) {
+                console.log(`Colegio ID ${user.colegio_id} no existe en Catalog DB. Sincronizando...`);
+                // Creamos el registro del colegio para que la Foreign Key no falle
+                // Usamos el ID exacto que viene del Auth Service
+                colegio = await this.ColegioModel.create({
+                    id: user.colegio_id,
+                    name: 'Colegio Sincronizado', // Nombre placeholder o genérico
+                    address: 'Dirección pendiente',
+                    phone: '0000000000'
+                });
+            }
+
+            // Ahora sí, creamos el producto con seguridad
+            const newProduct = await this.ProductModel.create({
+                name,
+                description,
+                price,
                 stock,
-                imagen_url: imagePath,
-                colegioId: colegioId || null, // Opcional según tu modelo
-                // userId: req.user.id // Si guardaras quién lo creó
+                preparationTime,
+                category,
+                availableFrom,
+                image: file ? file.filename : null, 
+                ingredients: ingredients || '',
+                colegioId: user.colegio_id 
             });
 
             res.status(201).json(newProduct);
         } catch (error) {
-            console.error(error);
-            res.status(500).json({ error: 'Error al crear producto' });
+            console.error("Error creating product:", error);
+            res.status(500).json({ error: error.message || 'Error creating product' });
         }
     }
 
-    // Borrar producto
     async delete(req, res) {
         try {
             const { id } = req.params;
-            const deleted = await this.Product.destroy({ where: { id } });
-            
-            if (deleted) {
-                res.json({ message: 'Producto eliminado' });
-            } else {
-                res.status(404).json({ error: 'Producto no encontrado' });
+            const user = req.user;
+
+            const deleted = await this.ProductModel.destroy({
+                where: { 
+                    id: id,
+                    colegioId: user.colegio_id 
+                }
+            });
+
+            if (!deleted) {
+                return res.status(404).json({ error: 'Product not found.' });
             }
+
+            res.json({ message: 'Product deleted.' });
         } catch (error) {
-            res.status(500).json({ error: 'Error al eliminar producto' });
+            res.status(500).json({ error: 'Error deleting product.' });
         }
     }
-
-    // Obtener todos (Método base)
-    async getAll(req, res) {
+    async getIngredients(req, res) {
         try {
-            const products = await this.Product.findAll();
-            res.json(products);
+            // Buscamos productos del colegio (opcional) o todos los ingredientes globales
+            // Para simplificar, devolveremos una lista extraída de los productos
+            const products = await this.ProductModel.findAll({
+                attributes: ['ingredients']
+            });
+
+            // Lógica para extraer ingredientes únicos de la cadena de texto "Tomate, Queso"
+            const allIngredients = new Set();
+            products.forEach(p => {
+                if (p.ingredients) {
+                    p.ingredients.split(',').forEach(i => allIngredients.add(i.trim()));
+                }
+            });
+
+            // Formato que espera el frontend: [{ id: 'Tomate', name: 'Tomate' }]
+            const list = Array.from(allIngredients).map((ing, index) => ({
+                id: index + 1,
+                name: ing
+            }));
+
+            res.json(list);
         } catch (error) {
-            console.error(error);
-            res.status(500).json({ error: 'Error al obtener productos' });
+            console.error("Error fetching ingredients:", error);
+            res.status(500).json({ error: "Error obteniendo ingredientes" });
         }
-    }
-
-    // --- ALIAS PARA COMPATIBILIDAD CON TUS RUTAS ---
-    
-    // Tu ruta llama a .list(), así que redirigimos a .getAll()
-    async list(req, res) {
-        return this.getAll(req, res);
-    }
-
-    async listForStudent(req, res) {
-        return this.getAll(req, res);
-    }
-
-    async listIngredients(req, res) {
-        res.json({ message: "Usa el endpoint /api/ingredients para ver ingredientes" });
     }
 }
 

@@ -1,23 +1,26 @@
 const jwt = require('jsonwebtoken');
 
 module.exports = (req, res, next) => {
-    // 1. Obtener el header Authorization
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-        return res.status(401).json({ error: 'Acceso denegado. Token no proporcionado.' });
-    }
-
-    // 2. Extraer el token (Bearer <token>)
-    const token = authHeader.split(' ')[1];
-
     try {
-        // 3. Verificar token con la clave secreta (Debe estar en tu .env)
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const authHeader = req.headers['authorization'];
+        const token = authHeader && authHeader.split(' ')[1]; // "Bearer TOKEN"
 
-        // 4. Guardar datos del usuario en la request
-        req.user = decoded; 
-        next();
+        if (!token) {
+            return res.status(401).json({ error: 'Acceso denegado. Token no proporcionado.' });
+        }
+
+        // Verifica usando la misma clave secreta que usaste en Auth Service
+        // Asegúrate de tener JWT_SECRET en el .env de catalog-service
+        const secret = process.env.JWT_SECRET || 'tu_secreto_super_seguro';
+        
+        jwt.verify(token, secret, (err, user) => {
+            if (err) return res.status(403).json({ error: 'Token inválido o expirado.' });
+            
+            // Inyectamos los datos del usuario en la request para que el Controlador los use
+            req.user = user; 
+            next();
+        });
     } catch (error) {
-        return res.status(401).json({ error: 'Token inválido o expirado.' });
+        res.status(401).json({ error: 'Autenticación fallida' });
     }
 };

@@ -9,41 +9,50 @@ const PORT = process.env.PORT || 3003;
 app.use(cors());
 app.use(express.json());
 
-// --- BASE DE DATOS PROPIA ---
+// DB
 const sequelize = new Sequelize({
     dialect: 'sqlite',
     storage: './orders_database.sqlite',
     logging: false
 });
 
-// --- IMPORTAR MODELOS ---
-const OrderDef = require('./src/models/OrderModel');
-const OrderItemDef = require('./src/models/OrderItemModel');
-const WalletDef = require('./src/models/WalletModel');
-const TransactionDef = require('./src/models/TransactionModel');
-// const OrderItemDef = require('./src/models/OrderItemModel'); 
+// MODELOS
+const Order = sequelize.define('Order', {
+    id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+    userId: { type: DataTypes.INTEGER, allowNull: false },
+    colegioId: { type: DataTypes.INTEGER, allowNull: false },
+    total: { type: DataTypes.FLOAT, allowNull: false },
+    status: { type: DataTypes.STRING, defaultValue: 'PENDING' },
+    date: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
+});
 
-const Order = OrderDef(sequelize, DataTypes);
-const OrderItem = OrderItemDef(sequelize, DataTypes);
-const Wallet = WalletDef(sequelize, DataTypes);
-const Transaction = TransactionDef(sequelize, DataTypes);
-// const OrderItem = OrderItemDef(sequelize, DataTypes);
+const OrderItem = sequelize.define('OrderItem', {
+    productName: { type: DataTypes.STRING, allowNull: false },
+    quantity: { type: DataTypes.INTEGER, allowNull: false },
+    price: { type: DataTypes.FLOAT, allowNull: false }
+});
 
-// --- RELACIONES (Sin Usuarios) ---
-Wallet.hasMany(Transaction);
-Transaction.belongsTo(Wallet);
-// Relación Pedido - Billetera (Opcional si pagan con saldo)
-Order.belongsTo(Wallet, { foreignKey: 'walletId', allowNull: true });
-Order.hasMany(OrderItem, { foreignKey: 'orderId' });
-OrderItem.belongsTo(Order, { foreignKey: 'orderId' });
-// --- RUTAS ---
-const orderRoutes = require('./src/routes/order.routes');
-const walletRoutes = require('./src/routes/wallet.routes');
+// Relaciones
+Order.hasMany(OrderItem, { as: 'items', foreignKey: 'OrderId' }); 
+OrderItem.belongsTo(Order, { foreignKey: 'OrderId' });
 
-app.use('/api/orders', orderRoutes(Order, Wallet)); // Pasamos Wallet por si hay pagos
-app.use('/api/wallet', walletRoutes(Wallet, Transaction));
+// Middleware de Auth (Copia el de Catalog a src/middlewares/AuthMiddleware.js)
+// Si no tienes el archivo, créalo igual que en Catalog Service.
+const AuthMiddleware = require('./src/middlewares/AuthMiddleware');
 
-sequelize.sync({ force: false }).then(() => {
+// Controlador
+const OrderController = require('./src/controllers/OrderController');
+const controller = new OrderController(Order, OrderItem);
+
+// RUTAS
+const router = express.Router();
+router.post('/', AuthMiddleware, controller.createOrder.bind(controller));
+router.get('/incoming', AuthMiddleware, controller.getIncomingOrders.bind(controller));
+router.put('/:id/status', AuthMiddleware, controller.updateStatus.bind(controller));
+
+app.use('/', router); 
+
+sequelize.sync().then(() => {
     console.log('Order DB Sincronizada');
     app.listen(PORT, () => {
         console.log(`Order Service corriendo en puerto ${PORT}`);

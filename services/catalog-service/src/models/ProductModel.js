@@ -1,42 +1,60 @@
-// services/catalog-service/src/models/ProductModel.js
+const { Model } = require('sequelize');
+
 module.exports = (sequelize, DataTypes) => {
-    const Product = sequelize.define('Product', {
-        id: { 
-            type: DataTypes.INTEGER, 
-            primaryKey: true, 
-            autoIncrement: true 
+    class Product extends Model {}
+
+    Product.init({
+        id: {
+            type: DataTypes.INTEGER,
+            primaryKey: true,
+            autoIncrement: true
         },
-        nombre: { 
-            type: DataTypes.STRING, 
-            allowNull: false 
+        // CHANGED TO ENGLISH
+        name: { 
+            type: DataTypes.STRING,
+            allowNull: false
         },
-        descripcion: { 
-            type: DataTypes.STRING 
+        description: {
+            type: DataTypes.STRING,
+            allowNull: true
         },
-        precio: { 
-            type: DataTypes.FLOAT, 
-            allowNull: false 
+        price: {
+            type: DataTypes.FLOAT,
+            allowNull: false
         },
-        stock: { 
-            type: DataTypes.INTEGER, 
-            defaultValue: 0 
-        }, 
-        tiempo_prep: { 
-            type: DataTypes.INTEGER 
-        }, // En minutos
-        imagen_url: { 
-            type: DataTypes.STRING 
-        }, 
-        available_From: {
-            type: DataTypes.DATEONLY
+        stock: {
+            type: DataTypes.INTEGER,
+            defaultValue: 0
         },
-        // Agregamos explícitamente la FK para evitar problemas
+        preparationTime: { // Changed from tiempo_prep
+            type: DataTypes.INTEGER,
+            defaultValue: 0
+        },
+        category: {
+            type: DataTypes.STRING,
+            defaultValue: 'General'
+        },
+        image: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
+        ingredients: {
+            type: DataTypes.TEXT, // Stored as comma-separated string
+            allowNull: true
+        },
+        availableFrom: { // Changed from available_From
+            type: DataTypes.DATEONLY,
+            allowNull: true
+        },
         colegioId: {
             type: DataTypes.INTEGER,
-            allowNull: true
+            allowNull: false
         }
-    }, { 
-        timestamps: true 
+    }, {
+        sequelize,
+        modelName: 'Product',
+        tableName: 'products',
+        timestamps: true
     });
 
     return Product;

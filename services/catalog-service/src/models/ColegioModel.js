@@ -6,20 +6,20 @@ module.exports = (sequelize, DataTypes) => {
             primaryKey: true,
             autoIncrement: true
         },
-        nombre: {
+        name: { 
             type: DataTypes.STRING,
             allowNull: false
         },
-        direccion: {
+        address: { // Changed from direccion
             type: DataTypes.STRING
         },
-        telefono: {
+        phone: { // Changed from telefono
             type: DataTypes.STRING
         },
-        ciudad: {
+        city: { // Changed from ciudad
             type: DataTypes.STRING
         },
-        provincia: {
+        province: { // Changed from provincia
             type: DataTypes.STRING
         }
     }, {

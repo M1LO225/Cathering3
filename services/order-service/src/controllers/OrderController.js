@@ -1,110 +1,100 @@
 class OrderController {
-    constructor(OrderModel, WalletModel) {
+    constructor(OrderModel, OrderItemModel) {
         this.Order = OrderModel;
-        this.Wallet = WalletModel;
+        this.OrderItem = OrderItemModel;
     }
 
-    async create(req, res) {
+    async createOrder(req, res) {
         try {
-            const userId = req.user.id; // Viene del Token (AuthMiddleware)
-            const { items, total, method, colegioId } = req.body; // method: 'wallet' o 'cash'
+            const user = req.user;
+            const { items } = req.body; 
 
-            // Validación básica
-            if (!items || items.length === 0) {
-                return res.status(400).json({ error: 'El pedido no tiene items' });
-            }
+            if (!items || items.length === 0) return res.status(400).json({ error: "Carrito vacío" });
 
-            // Si paga con Billetera, verificamos saldo
-            let wallet = null;
-            if (method === 'wallet') {
-                wallet = await this.Wallet.findOne({ where: { userId } });
+            // 1. Calcular total (Lógica Legacy)
+            let total = 0;
+            const orderItemsData = items.map(item => {
+                const price = parseFloat(item.price);
+                const qty = parseInt(item.quantity);
+                total += price * qty;
                 
-                if (!wallet || wallet.balance < total) {
-                    return res.status(400).json({ error: 'Saldo insuficiente en billetera' });
-                }
-            }
-
-            // Crear el Pedido
-            // NOTA: Asumimos que la lógica de crear OrderItems se maneja aquí o 
-            // simplificamos guardando solo la orden padre por ahora.
-            // Para guardar items, idealmente tu index.js debe tener Order.hasMany(OrderItem)
-            
-            const newOrder = await this.Order.create({
-                userId,
-                total,
-                status: 'pending',
-                colegioId,
-                walletId: wallet ? wallet.id : null
+                return {
+                    // Adaptado a tu modelo OrderItemModel legacy
+                    productName: item.name, 
+                    quantity: qty,
+                    price: price,
+                    // Si tuvieras removed_ingredients, irían aquí
+                };
             });
 
-            // Si pagó con wallet, descontamos
-            if (wallet) {
-                wallet.balance -= total;
-                await wallet.save();
-            }
+            // 2. Crear Orden
+            const newOrder = await this.Order.create({
+                userId: user.id,
+                colegioId: user.colegio_id,
+                total: total,
+                status: 'PENDING',
+                date: new Date()
+            });
 
-            // Aquí podrías crear los OrderItems si inyectaste el modelo, 
-            // pero para mantenerlo simple retornamos la orden creada.
+            // 3. Crear Items
+            const itemsToSave = orderItemsData.map(i => ({ ...i, OrderId: newOrder.id }));
+            await this.OrderItem.bulkCreate(itemsToSave);
             
-            return res.status(201).json(newOrder);
+            // --- AQUÍ FALTARÍA: RESTAR SALDO (Auth) Y RESTAR STOCK (Catalog) ---
+            // En arquitectura distribuida real, enviarías un evento "ORDER_CREATED".
+            // Por ahora, devolvemos éxito.
+
+            res.status(201).json({ message: "Pedido realizado con éxito", order: newOrder });
 
         } catch (error) {
             console.error(error);
-            return res.status(500).json({ error: 'Error al crear el pedido' });
+            res.status(500).json({ error: "Error creando pedido" });
         }
     }
 
-    async getAll(req, res) {
+    // Ver Pedidos (Para la Cafetería)
+    async getIncomingOrders(req, res) {
         try {
-            // Solo para admins/cocina
-            const orders = await this.Order.findAll();
+            const user = req.user;
+            
+            // Validación de seguridad
+            if (!user.colegio_id) {
+                return res.status(400).json({ error: "Usuario sin colegio asignado" });
+            }
+
+            const orders = await this.Order.findAll({
+                where: { colegioId: user.colegio_id },
+                include: [
+                    { 
+                        model: this.OrderItem, 
+                        as: 'items' // <--- IMPORTANTE: Debe coincidir con el index.js
+                    }
+                ], 
+                order: [['createdAt', 'DESC']]
+            });
+
             res.json(orders);
         } catch (error) {
-            res.status(500).json({ error: 'Error al obtener pedidos' });
-        }
-    }
-    
-    // Obtener pedidos DEL usuario logueado
-    async getMyOrders(req, res) {
-        try {
-            const userId = req.user.id;
-            const orders = await this.Order.findAll({ where: { userId } });
-            res.json(orders);
-        } catch (error) {
-            res.status(500).json({ error: 'Error al obtener mis pedidos' });
+            console.error("Error FATAL en getIncomingOrders:", error); // Verás el error real en la consola
+            res.status(500).json({ error: "Error interno obteniendo pedidos: " + error.message });
         }
     }
 
+    // Actualizar Estado (Cocina/Entregado)
     async updateStatus(req, res) {
         try {
             const { id } = req.params;
             const { status } = req.body;
-            
+
             const order = await this.Order.findByPk(id);
-            if (!order) return res.status(404).json({ error: 'Pedido no encontrado' });
+            if (!order) return res.status(404).json({ error: "Pedido no encontrado" });
 
             order.status = status;
             await order.save();
 
             res.json(order);
         } catch (error) {
-            res.status(500).json({ error: 'Error al actualizar estado' });
-        }
-    }
-    async getIncoming(req, res) {
-        try {
-            // Buscamos pedidos que no estén completados ni cancelados
-            // OJO: Ajusta los estados según lo que uses ('pending', 'paid', etc.)
-            const incomingOrders = await this.Order.findAll({
-                where: {
-                    status: ['pending', 'paid', 'ready'] // Array de estados activos
-                },
-                order: [['createdAt', 'ASC']] // Los más viejos primero
-            });
-            res.json(incomingOrders);
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ error: 'Error al obtener pedidos entrantes' });
+            res.status(500).json({ error: "Error actualizando estado" });
         }
     }
 }

@@ -1,16 +1,13 @@
-// services/catalog-service/src/routes/colegio.routes.js
 const { Router } = require('express');
 const AuthMiddleware = require('../middlewares/AuthMiddleware');
 const isColegioAdmin = require('../middlewares/isColegioAdmin');
 const validateColegio = require('../middlewares/validateColegio');
 
-// IMPORTANTE: Importamos la clase del controlador
 const ColegioController = require('../controllers/ColegioController');
 
 module.exports = (ColegioModel) => {
     const router = Router();
 
-    // INSTANCIAMOS EL CONTROLADOR AQUÍ
     const controller = new ColegioController(ColegioModel);
 
     // Middleware global para estas rutas

@@ -1,135 +1,135 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useCart } from '../context/CartContext';
-import { useAuth } from '../hooks/useAuth'; 
+import { useAuth } from '../hooks/useAuth';
 import Button from '../components/common/Button';
 import { useNavigate } from 'react-router-dom';
 
 const CartPage = () => {
-    const { cart, removeFromCart, total, clearCart } = useCart();
-    const { orderService, walletService } = useAuth(); 
-    const navigate = useNavigate();
-    
-    const [loading, setLoading] = useState(false);
+    const { cart, removeFromCart, clearCart, total } = useCart();
+    const { walletService, orderService, user } = useAuth();
     const [balance, setBalance] = useState(0);
+    const [loadingBalance, setLoadingBalance] = useState(true);
+    const navigate = useNavigate();
 
-    // Cargar saldo al entrar al carrito
+    // Cargar saldo al entrar
     useEffect(() => {
-        const fetchBalance = async () => {
-            try {
-                if(walletService) {
-                    const data = await walletService.getBalance();
-                    setBalance(data.saldo);
-                }
-            } catch (error) {
-                console.error("Error cargando saldo", error);
-            }
-        };
-        fetchBalance();
+        if (walletService) {
+            walletService.getBalance()
+                .then(data => {
+                    setBalance(data.saldo || 0);
+                    setLoadingBalance(false);
+                })
+                .catch(err => {
+                    console.error("Error cargando saldo:", err);
+                    setLoadingBalance(false);
+                });
+        }
     }, [walletService]);
 
-    const handlePayment = async () => {
-        if (cart.length === 0) return;
-
-        // Validación visual antes de enviar
+    const handleCheckout = async () => {
         if (balance < total) {
-            alert("No tienes saldo suficiente. Por favor recarga tu billetera.");
+            alert("Saldo insuficiente. Por favor recarga tu billetera.");
             return;
         }
 
-        if (!window.confirm(`¿Confirmar pago de $${total.toFixed(2)} con tu saldo?`)) return;
-
-        setLoading(true);
         try {
-            await orderService.createOrder(cart);
+            const orderItems = cart.map(item => ({
+                name: item.name,     
+                price: item.price,    
+                quantity: item.quantity
+            }));
+
+            await orderService.createOrder(orderItems);
             
-            alert("¡Pedido Confirmado! La cocina ha recibido tu orden.");
-            clearCart(); 
-            navigate('/menu'); 
-            
+            alert("¡Pedido realizado con éxito!");
+            clearCart();
+            // Recargamos el saldo para ver el descuento
+            const newBalance = await walletService.getBalance();
+            setBalance(newBalance.saldo);
+            navigate('/dashboard'); // O a historial de pedidos
         } catch (error) {
-            alert(`Error: ${error.message}`);
-        } finally {
-            setLoading(false);
+            alert("Error al procesar el pedido: " + error.message);
         }
     };
 
-    if (cart.length === 0) return <div style={{padding:'40px', textAlign:'center'}}>Tu carrito está vacío 🛒</div>;
-
-    const canPay = balance >= total;
+    if (cart.length === 0) {
+        return <div style={{ padding: '20px', textAlign: 'center' }}><h2>Tu carrito está vacío</h2></div>;
+    }
 
     return (
-        <div style={{ padding: '20px', maxWidth: '900px', margin: '0 auto', display: 'flex', gap: '40px', flexWrap: 'wrap' }}>
-            
-            {/* COLUMNA 1: DETALLE DEL PEDIDO */}
+        <div style={{ padding: '20px', display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+            {/* Lista de Items */}
             <div style={{ flex: 2, minWidth: '300px' }}>
                 <h2>Resumen del Pedido</h2>
                 {cart.map(item => (
-                    <div key={item.cartId} style={{ borderBottom: '1px solid #eee', padding: '15px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div key={item.id} style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center',
+                        padding: '15px',
+                        borderBottom: '1px solid #eee',
+                        marginBottom: '10px'
+                    }}>
                         <div>
-                            <strong>{item.nombre}</strong>
-                            {item.removedIngredients && item.removedIngredients.length > 0 && (
-                                <div style={{ color: '#d32f2f', fontSize: '0.85em' }}>
-                                    Sin: {item.removedIngredients.join(', ')}
-                                </div>
-                            )}
+                            {/* CAMBIO CLAVE: name y price en Inglés */}
+                            <h4 style={{ margin: 0 }}>{item.name}</h4>
+                            <p style={{ margin: 0, color: '#666' }}>
+                                ${item.price} x {item.quantity}
+                            </p>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                            <span>${item.precio}</span>
-                            <button 
-                                onClick={() => removeFromCart(item.cartId)} 
-                                style={{ color: 'red', border: 'none', background: 'none', cursor: 'pointer', fontSize: '1.2rem' }}
-                                title="Eliminar"
+                            <span style={{ fontWeight: 'bold' }}>
+                                ${(item.price * item.quantity).toFixed(2)}
+                            </span>
+                            <Button 
+                                onClick={() => removeFromCart(item.id)}
+                                style={{ background: '#ffcdd2', color: '#c62828', padding: '5px 10px' }}
                             >
                                 🗑️
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 ))}
-                <h3 style={{ textAlign: 'right', marginTop: '20px', fontSize: '1.5em' }}>Total: ${total.toFixed(2)}</h3>
-            </div>
-
-            {/* COLUMNA 2: PAGO CON BILLETERA */}
-            <div style={{ flex: 1, minWidth: '280px' }}>
-                <div style={{ background: '#f0f4f8', padding: '25px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-                    <h3 style={{ marginTop: 0, color: '#2c3e50' }}>Método de Pago</h3>
-                    
-                    <div style={{ marginBottom: '20px', padding: '15px', background: 'white', borderRadius: '8px', border: '1px solid #ddd' }}>
-                        <p style={{ margin: '0 0 5px 0', fontSize: '0.9em', color: '#666' }}>Tu Saldo Disponible:</p>
-                        <div style={{ fontSize: '2em', fontWeight: 'bold', color: canPay ? '#27ae60' : '#e74c3c' }}>
-                            ${parseFloat(balance).toFixed(2)}
-                        </div>
-                    </div>
-
-                    {!canPay && (
-                        <div style={{ color: '#c0392b', marginBottom: '15px', fontSize: '0.9em', background: '#fadbd8', padding: '10px', borderRadius: '5px' }}>
-                            Saldo insuficiente. Te faltan ${(total - balance).toFixed(2)}
-                        </div>
-                    )}
-
-                    <Button 
-                        onClick={handlePayment} 
-                        disabled={!canPay || loading} 
-                        style={{ 
-                            width: '100%', 
-                            background: canPay ? '#27ae60' : '#95a5a6',
-                            padding: '15px',
-                            fontSize: '1.1em'
-                        }}
-                    >
-                        {loading ? 'Procesando...' : 'Confirmar y Pagar'}
-                    </Button>
-
-                    {!canPay && (
-                        <button 
-                            onClick={() => navigate('/wallet')}
-                            style={{ width: '100%', marginTop: '10px', padding: '10px', background: 'transparent', border: '1px solid #2980b9', color: '#2980b9', borderRadius: '4px', cursor: 'pointer' }}
-                        >
-                            Ir a Recargar Saldo
-                        </button>
-                    )}
+                <div style={{ textAlign: 'right', marginTop: '20px' }}>
+                    <h3>Total: ${total.toFixed(2)}</h3>
                 </div>
             </div>
 
+            {/* Panel de Pago */}
+            <div style={{ flex: 1, minWidth: '250px', background: '#f9f9f9', padding: '20px', borderRadius: '8px', height: 'fit-content' }}>
+                <h3>Método de Pago</h3>
+                <div style={{ background: 'white', padding: '15px', borderRadius: '4px', marginBottom: '15px', border: '1px solid #ddd' }}>
+                    <p style={{ margin: '0 0 5px 0', fontSize: '0.9em', color: '#555' }}>Tu Saldo Disponible:</p>
+                    {loadingBalance ? (
+                        <span>Cargando...</span>
+                    ) : (
+                        <h2 style={{ margin: 0, color: balance < total ? '#d32f2f' : '#2e7d32' }}>
+                            ${parseFloat(balance).toFixed(2)}
+                        </h2>
+                    )}
+                </div>
+
+                {balance < total && (
+                    <div style={{ background: '#ffebee', color: '#c62828', padding: '10px', borderRadius: '4px', marginBottom: '15px', fontSize: '0.9em' }}>
+                        Saldo insuficiente. Te faltan ${(total - balance).toFixed(2)}
+                    </div>
+                )}
+
+                <Button 
+                    onClick={handleCheckout} 
+                    style={{ width: '100%', marginBottom: '10px' }}
+                    disabled={balance < total}
+                >
+                    Confirmar y Pagar
+                </Button>
+                
+                <Button 
+                    onClick={() => navigate('/wallet')} 
+                    style={{ width: '100%', background: 'transparent', border: '1px solid #1976d2', color: '#1976d2' }}
+                >
+                    Ir a Recargar Saldo
+                </Button>
+            </div>
         </div>
     );
 };

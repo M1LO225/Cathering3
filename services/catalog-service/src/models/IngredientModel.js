@@ -6,12 +6,12 @@ module.exports = (sequelize, DataTypes) => {
             primaryKey: true, 
             autoIncrement: true 
         },
-        nombre: { 
+        name: { // Changed from nombre
             type: DataTypes.STRING, 
             allowNull: false, 
             unique: true 
         },
-        is_common: { 
+        isCommon: { // Changed from is_common (CamelCase is standard JS)
             type: DataTypes.BOOLEAN, 
             defaultValue: false 
         } 
