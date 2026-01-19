@@ -3,7 +3,6 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
-    // Inicializamos desde localStorage para no perder el carrito al recargar
     const [cart, setCart] = useState(() => {
         try {
             const saved = localStorage.getItem('cart');
@@ -13,38 +12,48 @@ export const CartProvider = ({ children }) => {
         }
     });
 
-    // Guardar en localStorage cada vez que cambie
     useEffect(() => {
         localStorage.setItem('cart', JSON.stringify(cart));
     }, [cart]);
 
-    const addToCart = (product) => {
+    // Mantenemos tus variables: .name, .price y .id
+    const addToCart = (product, removedIngredients = []) => {
         setCart(currentCart => {
-            const existing = currentCart.find(item => item.id === product.id);
+            // Creamos un ID único para el carrito que incluya la personalización
+            const cartId = removedIngredients.length > 0 
+                ? `${product.id}-${removedIngredients.join('-')}` 
+                : product.id;
+            
+            const existing = currentCart.find(item => item.cartId === cartId);
+            
             if (existing) {
                 return currentCart.map(item => 
-                    item.id === product.id 
+                    item.cartId === cartId 
                         ? { ...item, quantity: item.quantity + 1 }
                         : item
                 );
             }
+
             return [...currentCart, { 
+                cartId: cartId, // Usamos este para identificar la línea en el carrito
                 id: product.id,
-                name: product.name,
-                price: parseFloat(product.price), // Asegurar número
+                name: product.name || product.nombre, // Soporta ambos por si acaso
+                price: parseFloat(product.price || product.precio), 
                 quantity: 1,
-                image: product.imageUrl 
+                image: product.imageUrl || product.imagen_url,
+                removedIngredients: removedIngredients 
             }];
         });
     };
 
-    const removeFromCart = (productId) => {
-        setCart(current => current.filter(item => item.id !== productId));
+    // Usamos cartId para borrar la línea específica
+    const removeFromCart = (cartId) => {
+        setCart(current => current.filter(item => item.cartId !== cartId));
     };
 
     const clearCart = () => setCart([]);
 
-    // Calculamos el total asegurando que price sea número
+    // ESTA ES LA CLAVE: El total ahora sí sumará correctamente usando .price
     const total = cart.reduce((sum, item) => {
         const price = parseFloat(item.price) || 0;
         return sum + (price * item.quantity);

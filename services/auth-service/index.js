@@ -7,6 +7,8 @@ const { Sequelize, DataTypes } = require('sequelize');
 // Importar definiciones de modelos
 const UserModelDef = require('./src/models/UserModel');
 const ColegioModelDef = require('./src/models/ColegioModel');
+const TransactionModelDef = require('./src/models/TransactionModel');
+
 
 // Importar rutas
 const authRoutes = require('./src/routes/auth.routes');
@@ -26,10 +28,13 @@ const sequelize = new Sequelize({
 // 2. Inicializar Modelos
 const UserModel = UserModelDef(sequelize, DataTypes);
 const ColegioModel = ColegioModelDef(sequelize, DataTypes);
+const TransactionModel = TransactionModelDef(sequelize, DataTypes);
 
 // 3. Definir Relaciones
 UserModel.hasOne(ColegioModel, { foreignKey: 'admin_user_id' });
 ColegioModel.belongsTo(UserModel, { foreignKey: 'admin_user_id' });
+UserModel.hasMany(TransactionModel, { foreignKey: 'userId', as: 'transactions' });
+TransactionModel.belongsTo(UserModel, { foreignKey: 'userId' });
 
 // 4. Sincronizar Base de Datos
 sequelize.sync()
@@ -37,7 +42,7 @@ sequelize.sync()
     .catch(err => console.error('Error al sincronizar DB:', err));
 
 // 5. Configurar Rutas
-app.use('/', authRoutes(UserModel, ColegioModel, sequelize));
+app.use('/', authRoutes(UserModel, ColegioModel, sequelize, TransactionModel));
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {

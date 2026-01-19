@@ -63,8 +63,25 @@ class SQLiteUserRepository {
     }
 
     // --- UTILS ---
-    async getUserAllergies(userId) { return []; } 
-    async updateAllergies(userId, ids) { return true; }
+    async getUserAllergies(userId) {
+        const user = await this.userModel.findByPk(userId);
+        if (!user || !user.allergies) return [];
+        try {
+            // Convertimos el string "['Lechuga']" en un array real
+            return JSON.parse(user.allergies);
+        } catch (e) {
+            return [];
+        }
+    }
+
+    async updateAllergies(userId, namesArray) {
+        const user = await this.userModel.findByPk(userId);
+        if (!user) throw new Error('Usuario no encontrado');
+        // Guardamos el array de nombres como texto
+        return await user.update({ 
+            allergies: JSON.stringify(namesArray) 
+        });
+    }
 
     async createColegioWithAdmin(userData, colegioData) {
         const t = await this.sequelize.transaction();

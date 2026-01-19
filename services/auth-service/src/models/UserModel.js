@@ -1,16 +1,7 @@
-// services/auth-service/src/models/UserModel.js
-const { Model } = require('sequelize');
+const { Model, DataTypes } = require('sequelize');
 
-module.exports = (sequelize, DataTypes) => {
-    const User = sequelize.define('User', {
-        // ... id, username, password, role, etc ...
-        // Agrega esto:
-        allergies: {
-            type: DataTypes.TEXT, // Guardaremos JSON string: "['Maní', 'Leche']"
-            defaultValue: '[]'
-        },
-        // ... colegio_id, saldo ...
-    });
+module.exports = (sequelize) => {
+    class User extends Model {}
 
     User.init({
         id: {
@@ -31,7 +22,6 @@ module.exports = (sequelize, DataTypes) => {
                 isEmail: true
             }
         },
-        // MANTENEMOS TU CAMPO ORIGINAL 'passwordHash'
         passwordHash: {
             type: DataTypes.STRING,
             allowNull: false
@@ -43,7 +33,13 @@ module.exports = (sequelize, DataTypes) => {
         },
         colegio_id: {
             type: DataTypes.INTEGER,
-            allowNull: true // Puede ser nulo si es SuperAdmin o aún no se asigna
+            allowNull: true 
+        },
+        // 🔥 AQUÍ ESTÁ LA CLAVE: Agregado correctamente a la definición real
+        allergies: {
+            type: DataTypes.TEXT, 
+            defaultValue: '[]',
+            allowNull: true
         }
     }, {
         sequelize,
@@ -51,7 +47,6 @@ module.exports = (sequelize, DataTypes) => {
         tableName: 'users',
         timestamps: true
     });
-
 
     return User;
 };

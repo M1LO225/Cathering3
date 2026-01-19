@@ -5,15 +5,13 @@ import Button from '../components/common/Button';
 const AllergiesManager = () => {
     const { userService } = useAuth();
     
-    const [myAllergies, setMyAllergies] = useState([]); // Mis alergias registradas
-    const [allIngredients, setAllIngredients] = useState([]); // Catálogo completo para el select
+    const [myAllergies, setMyAllergies] = useState([]); 
+    const [allIngredients, setAllIngredients] = useState([]); 
     const [loading, setLoading] = useState(true);
     
-    // Estado del Modal
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedIngredientToAdd, setSelectedIngredientToAdd] = useState("");
+    const [selectedIngredientName, setSelectedIngredientName] = useState("");
 
-    // Cargar datos iniciales
     useEffect(() => {
         fetchData();
     }, []);
@@ -24,8 +22,8 @@ const AllergiesManager = () => {
                 userService.getAllIngredients(),
                 userService.getMyAllergies()
             ]);
-            setAllIngredients(ingredientsData);
-            setMyAllergies(allergiesData);
+            setAllIngredients(Array.isArray(ingredientsData) ? ingredientsData : []);
+            setMyAllergies(Array.isArray(allergiesData) ? allergiesData : []);
         } catch (error) {
             console.error("Error cargando datos:", error);
         } finally {
@@ -33,54 +31,36 @@ const AllergiesManager = () => {
         }
     };
 
-    // DELETE: Eliminar una alergia de mi lista
-    const handleRemoveAllergy = async (ingredientId) => {
-        if(!window.confirm("¿Ya no eres alérgico a este ingrediente?")) return;
-
-        // Filtramos la lista actual quitando el ingrediente
-        const newIds = myAllergies
-            .filter(ing => ing.id !== ingredientId)
-            .map(ing => ing.id);
-
+    const handleAddAllergy = async (e) => {
+        e.preventDefault();
+        if (!selectedIngredientName) return;
+        if (myAllergies.includes(selectedIngredientName)) {
+            alert("Ya tienes registrada esta alergia.");
+            return;
+        }
+        const newAllergies = [...myAllergies, selectedIngredientName];
         try {
-            await userService.updateMyAllergies(newIds);
-            // Actualizamos estado local para que se refleje instantáneamente
-            setMyAllergies(prev => prev.filter(ing => ing.id !== ingredientId));
+            await userService.updateMyAllergies(newAllergies);
+            setMyAllergies(newAllergies);
+            setIsModalOpen(false);
+            setSelectedIngredientName("");
+        } catch (error) {
+            alert("Error al guardar");
+        }
+    };
+
+    const handleRemoveAllergy = async (allergyName) => {
+        if(!window.confirm(`¿Ya no eres alérgico a ${allergyName}?`)) return;
+        const newAllergies = myAllergies.filter(name => name !== allergyName);
+        try {
+            await userService.updateMyAllergies(newAllergies);
+            setMyAllergies(newAllergies);
         } catch (error) {
             alert("Error al eliminar alergia");
         }
     };
 
-    // CREATE: Agregar una nueva alergia desde el Modal
-    const handleAddAllergy = async (e) => {
-        e.preventDefault();
-        if (!selectedIngredientToAdd) return;
-
-        const ingredientId = parseInt(selectedIngredientToAdd);
-        
-        // Verificar si ya la tiene
-        if (myAllergies.find(a => a.id === ingredientId)) {
-            alert("Ya tienes registrada esta alergia.");
-            return;
-        }
-
-        // Creamos la nueva lista de IDs
-        const currentIds = myAllergies.map(a => a.id);
-        const newIds = [...currentIds, ingredientId];
-
-        try {
-            await userService.updateMyAllergies(newIds);
-            
-            // Actualizar UI: Buscar el objeto ingrediente completo para mostrarlo
-            const ingredientObj = allIngredients.find(i => i.id === ingredientId);
-            setMyAllergies([...myAllergies, ingredientObj]);
-            
-            setIsModalOpen(false);
-            setSelectedIngredientToAdd("");
-        } catch (error) {
-            alert("Error al agregar alergia");
-        }
-    };
+    
 
     if (loading) return <div style={{padding:'20px'}}>Cargando gestor de alergias...</div>;
 
@@ -104,8 +84,8 @@ const AllergiesManager = () => {
                 </div>
             ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '15px', marginTop: '20px' }}>
-                    {myAllergies.map(ing => (
-                        <div key={ing.id} style={{ 
+                    {myAllergies.map((allergyName, index) => (
+                        <div key={index} style={{ 
                             display: 'flex', 
                             justifyContent: 'space-between', 
                             alignItems: 'center',
@@ -115,9 +95,9 @@ const AllergiesManager = () => {
                             borderRadius: '8px',
                             color: '#b71c1c'
                         }}>
-                            <span style={{ fontWeight: 'bold' }}>⚠️ {ing.nombre}</span>
+                            <span style={{ fontWeight: 'bold' }}>⚠️ {allergyName}</span>
                             <button 
-                                onClick={() => handleRemoveAllergy(ing.id)}
+                                onClick={() => handleRemoveAllergy(allergyName)}
                                 style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '1.2rem' }}
                                 title="Eliminar alergia"
                             >
@@ -137,16 +117,17 @@ const AllergiesManager = () => {
                         <h3>Registrar Nueva Alergia</h3>
                         <form onSubmit={handleAddAllergy}>
                             <label style={{ display: 'block', marginBottom: '10px' }}>Selecciona el ingrediente:</label>
+                            
                             <select 
-                                value={selectedIngredientToAdd} 
-                                onChange={(e) => setSelectedIngredientToAdd(e.target.value)}
+                                value={selectedIngredientName} 
+                                onChange={(e) => setSelectedIngredientName(e.target.value)}
                                 style={{ width: '100%', padding: '10px', marginBottom: '20px', borderRadius: '4px', border: '1px solid #ccc' }}
                                 required
                             >
                                 <option value="">-- Buscar ingrediente --</option>
-                                {allIngredients.map(ing => (
-                                    <option key={ing.id} value={ing.id}>
-                                        {ing.nombre}
+                                {allIngredients.map((ing, idx) => (
+                                    <option key={idx} value={ing.nombre || ing.name}>
+                                        {ing.nombre || ing.name}
                                     </option>
                                 ))}
                             </select>
@@ -163,7 +144,6 @@ const AllergiesManager = () => {
                     </div>
                 </div>
             )}
-
         </div>
     );
 };

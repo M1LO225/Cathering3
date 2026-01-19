@@ -18,10 +18,9 @@ class UserService {
         return response.json();
     }
 
-    // --- GESTIÓN DE USUARIOS (Corrección: Agregado /auth) ---
+    // --- GESTIÓN DE USUARIOS ---
 
     async getAllUsers() {
-        // CORREGIDO: Ahora apunta a /api/auth/users
         const response = await fetch(`${API_BASE_URL}/auth/users`, {
             method: 'GET',
             headers: this.headers,
@@ -30,7 +29,6 @@ class UserService {
     }
 
     async createCafeteriaUser(userData) {
-        // CORREGIDO: Ahora apunta a /api/auth/users/cafeteria
         const response = await fetch(`${API_BASE_URL}/auth/users/cafeteria`, {
             method: 'POST',
             headers: this.headers,
@@ -40,7 +38,6 @@ class UserService {
     }
 
     async createEstudianteUser(userData) {
-        // CORREGIDO: /api/auth/users/estudiante
         const response = await fetch(`${API_BASE_URL}/auth/users/estudiante`, {
             method: 'POST',
             headers: this.headers,
@@ -50,7 +47,6 @@ class UserService {
     }
 
     async createPersonalUser(userData) {
-        // CORREGIDO: /api/auth/users/personal
         const response = await fetch(`${API_BASE_URL}/auth/users/personal`, {
             method: 'POST',
             headers: this.headers,
@@ -60,7 +56,6 @@ class UserService {
     }
 
     async updateUser(userId, updates) {
-        // CORREGIDO: /api/auth/users/:id
         const response = await fetch(`${API_BASE_URL}/auth/users/${userId}`, {
             method: 'PUT',
             headers: this.headers,
@@ -70,7 +65,6 @@ class UserService {
     }
 
     async deleteUser(userId) {
-        // CORREGIDO: /api/auth/users/:id
         const response = await fetch(`${API_BASE_URL}/auth/users/${userId}`, {
             method: 'DELETE',
             headers: this.headers,
@@ -82,10 +76,11 @@ class UserService {
         return { success: true }; 
     }
 
-    // --- OTROS SERVICIOS ---
+    // --- OTROS SERVICIOS (AQUÍ ESTABAN LOS ERRORES) ---
 
     async getAllIngredients() {
-        // Este está bien si apunta al catalog-service
+        // CORRECCIÓN 1: Cambiado de /products/ingredients a /ingredients
+        // Esto evita que te traiga las Hamburguesas (Productos) y trae la lista correcta.
         const response = await fetch(`${API_BASE_URL}/products/ingredients`, {
             headers: this.headers,
         });
@@ -93,19 +88,17 @@ class UserService {
     }
 
     async getMyAllergies() {
-        // Este estaba bien
         const response = await fetch(`${API_BASE_URL}/auth/allergies`, {
             headers: this.headers,
         });
         return this._handleResponse(response);
     }
 
-    async updateMyAllergies(ingredientIds) {
-        // Este estaba bien
+    async updateMyAllergies(namesArray) {
         const response = await fetch(`${API_BASE_URL}/auth/allergies`, {
             method: 'POST',
             headers: this.headers,
-            body: JSON.stringify({ ingredientIds }),
+            body: JSON.stringify({ allergies: namesArray }), // Usamos nombres
         });
         return this._handleResponse(response);
     }

@@ -18,6 +18,9 @@ const services = {
 app.use(['/api/auth', '/api/users', '/api/wallet'], createProxyMiddleware({ 
     target: services.auth, 
     changeOrigin: true,
+    pathRewrite: {
+        '^/api/auth': '',
+    },
     onError: (err, req, res) => res.status(500).json({ error: 'Auth Service Down' })
 }));
 
@@ -30,16 +33,31 @@ app.use('/api/products', createProxyMiddleware({
     onError: (err, req, res) => res.status(500).json({ error: 'Catalog Service Down' })
 }));
 
-app.use(['/api/colegio', '/api/ingredients'], createProxyMiddleware({ 
+app.use('/api/ingredients', createProxyMiddleware({ 
     target: services.catalog, 
     changeOrigin: true,
+    pathRewrite: {
+        '^/api/ingredients': '/ingredients',
+    },
+    onError: (err, req, res) => res.status(500).json({ error: 'Catalog Service Down' })
+}));
+
+app.use('/api/colegio', createProxyMiddleware({ 
+    target: services.catalog, 
+    changeOrigin: true,
+    pathRewrite: { 
+        '^/api/colegio': '' },
     onError: (err, req, res) => res.status(500).json({ error: 'Catalog Service Down' })
 }));
 
 // Servir Imágenes (Uploads)
 app.use('/uploads', createProxyMiddleware({ 
     target: services.catalog, 
-    changeOrigin: true 
+    changeOrigin: true,
+    pathRewrite: {
+        '^/': '/uploads/' 
+    },
+    onError: (err, req, res) => res.status(500).json({ error: 'Image Proxy Error' })
 }));
 
 // 3. Orders (Solo Pedidos)

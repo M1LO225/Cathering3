@@ -133,7 +133,7 @@ const CafeteriaDashboard = () => {
                                     <img 
                                         src={p.imageUrl} 
                                         alt={p.name} 
-                                        style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '4px' }} 
+                                        style={{ width: '100%', height: '150px', objectFit: 'contain', borderRadius: '4px' }} 
                                         onError={(e) => {e.target.style.display = 'none'}}
                                     />
                                 )}

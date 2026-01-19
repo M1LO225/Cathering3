@@ -1,10 +1,11 @@
 // services/auth-service/src/controllers/UserController.js
 
 class UserController {
-    constructor(userRepository, encryptService, updateUserUseCase) {
+    constructor(userRepository, encryptService, updateUserUseCase, TransactionModel) {
         this.userRepository = userRepository;
         this.encryptService = encryptService;
         this.updateUserUseCase = updateUserUseCase;
+        this.TransactionModel = TransactionModel;
     }
 
     // --- 1. CREAR USUARIO (Lógica Admin Colegio) ---
@@ -161,13 +162,21 @@ class UserController {
     async updateMyAllergies(req, res) { await this.userRepository.updateAllergies(req.user.id, req.body.ingredientIds); res.json({msg: "OK"}); }
     async getBalance(req, res) { const u = await this.userRepository.findById(req.user.id); res.json({saldo: u ? u.saldo : 0}); }
     async rechargeBalance(req, res) {
-        // Iniciar transacción SQL para consistencia
+        // Log para ver qué llega
+        console.log("--- INICIO RECARGA ---");
+        console.log("Body recibido:", req.body);
+        
         const t = await this.userRepository.sequelize.transaction(); 
         try {
             const userId = req.user.id;
             const { amount } = req.body;
 
-            if (!amount || amount <= 0) return res.status(400).json({ error: "Monto inválido" });
+            // Validación fuerte y conversión
+            const amountFloat = parseFloat(amount);
+            if (isNaN(amountFloat) || amountFloat <= 0) {
+                await t.rollback();
+                return res.status(400).json({ error: "Monto inválido" });
+            }
 
             const user = await this.userRepository.findById(userId);
             if (!user) {
@@ -175,53 +184,57 @@ class UserController {
                 return res.status(404).json({ error: "Usuario no encontrado" });
             }
 
-            const newBalance = parseFloat(user.saldo || 0) + parseFloat(amount);
-            
-            // 1. Actualizar saldo
-            await user.update({ saldo: newBalance }, { transaction: t });
-            
-            await Transaction.create({
-                userId: user.id,
-                amount: amount,
-                type: 'TOPUP',
-                description: 'Recarga de saldo'
-            }, { transaction: t });
-            
+            const saldoAnterior = parseFloat(user.saldo || 0);
+            const newBalance = saldoAnterior + amountFloat;
+
+            console.log(`Usuario: ${userId} | Saldo Anterior: ${saldoAnterior} | A sumar: ${amountFloat} | Nuevo: ${newBalance}`);
+
+            // 1. Actualizar saldo (Forzamos la actualización)
+            // Usamos user.set + user.save para asegurar compatibilidad
+            user.saldo = newBalance;
+            await user.save({ transaction: t });
+
+            // 2. Registrar transacción
+            if (this.TransactionModel) {
+                await this.TransactionModel.create({
+                    userId: user.id,
+                    amount: amountFloat,
+                    type: 'TOPUP',
+                    description: 'Recarga de saldo'
+                }, { transaction: t });
+            }
 
             await t.commit();
+            console.log("--- RECARGA FINALIZADA CON ÉXITO ---");
+            
             res.json({ message: "Recarga exitosa", saldo: newBalance });
 
         } catch (error) {
             await t.rollback();
-            console.error(error);
-            res.status(500).json({ error: "Error en recarga" });
+            console.error("ERROR EN RECARGA:", error);
+            res.status(500).json({ error: "Error en recarga: " + error.message });
         }
     }
-    async getAllergies(req, res) {
+    
+    async getMyAllergies(req, res) {
         try {
-            const user = await this.userRepository.findById(req.user.id);
-            // Convertimos el texto JSON a array real
-            const allergiesList = user.allergies ? JSON.parse(user.allergies) : [];
-            res.json(allergiesList);
-        } catch (e) {
-            res.status(500).json({ error: "Error al obtener alergias" });
+            const allergies = await this.userRepository.getUserAllergies(req.user.id);
+            res.json(allergies); 
+        } catch (error) {
+            res.status(500).json({ error: 'Error al obtener alergias' });
         }
     }
-    async updateAllergies(req, res) {
+
+    async updateMyAllergies(req, res) {
         try {
-            const userId = req.user.id;
-            const { allergies } = req.body; // Espera array ['Maní', 'Gluten']
-
-            if (!Array.isArray(allergies)) return res.status(400).json({ error: "Formato inválido" });
-
-            const user = await this.userRepository.findById(userId);
-            
-            // Guardamos como texto
-            await user.update({ allergies: JSON.stringify(allergies) });
-            
-            res.json({ message: "Alergias actualizadas", allergies });
-        } catch (e) {
-            res.status(500).json({ error: "Error al guardar alergias" });
+            const { allergies } = req.body; // Esperamos ['Lechuga', 'Tomate']
+            if (!Array.isArray(allergies)) {
+                return res.status(400).json({ error: "Se requiere un array de nombres" });
+            }
+            await this.userRepository.updateAllergies(req.user.id, allergies);
+            res.json({ message: "Alergias guardadas", allergies });
+        } catch (error) {
+            res.status(500).json({ error: error.message });
         }
     }
 }

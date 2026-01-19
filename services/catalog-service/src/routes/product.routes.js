@@ -4,15 +4,19 @@ const isCafeteria = require('../middlewares/isCafeteria');
 const AuthMiddleware = require('../middlewares/AuthMiddleware');
 const ProductController = require('../controllers/ProductController');
 
-module.exports = (ProductModel, ColegioModel) => {
+module.exports = (ProductModel, ColegioModel, IngredientModel) => {
     const router = Router();
-    const controller = new ProductController(ProductModel, ColegioModel);
+    
+    // Pasamos los 3 modelos al constructor
+    const controller = new ProductController(ProductModel, ColegioModel, IngredientModel);
 
-    // GET / 
-    router.get('/ingredients', AuthMiddleware, controller.getIngredients.bind(controller));
     router.get('/', AuthMiddleware, controller.getAll.bind(controller));
+    
+    // Endpoint para lista de ingredientes (Alergias)
+    router.get('/ingredients', controller.getIngredients.bind(controller));
 
-    // POST /
+    router.post('/safe-menu', AuthMiddleware, controller.getSafeMenu.bind(controller));
+
     router.post(
         '/', 
         AuthMiddleware, 
@@ -21,7 +25,6 @@ module.exports = (ProductModel, ColegioModel) => {
         controller.create.bind(controller)
     );
     
-    // DELETE /:id
     router.delete(
         '/:id', 
         AuthMiddleware, 

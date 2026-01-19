@@ -42,7 +42,7 @@ Product.belongsTo(Colegio, { foreignKey: 'colegioId' });
 const productRoutes = require('./src/routes/product.routes');
 
 // Inyección de modelos
-app.use('/', productRoutes(Product, Colegio));
+app.use('/', productRoutes(Product, Colegio, Ingredient));
 
 app.listen(PORT, () => {
     console.log(`Catalog Service corriendo en puerto ${PORT}`);

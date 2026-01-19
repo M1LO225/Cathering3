@@ -5,17 +5,18 @@ import Button from '../components/common/Button';
 const StudentAllergiesPage = () => {
     const { userService } = useAuth();
     const [allIngredients, setAllIngredients] = useState([]);
-    const [selectedIds, setSelectedIds] = useState([]);
+    const [selectedAllergies, setSelectedAllergies] = useState([]); 
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const loadData = async () => {
             try {               
                 const ingredients = await userService.getAllIngredients();
+                console.log("DATOS CRUDOS REACT:", ingredients); // Mira la consola (F12)
                 setAllIngredients(ingredients);
 
                 const myAllergies = await userService.getMyAllergies();
-                setSelectedIds(myAllergies.map(ing => ing.id));
+                setSelectedAllergies(Array.isArray(myAllergies) ? myAllergies : []);
             } catch (error) {
                 console.error("Error cargando alergias:", error);
             } finally {
@@ -25,49 +26,52 @@ const StudentAllergiesPage = () => {
         loadData();
     }, [userService]);
 
-    const toggleAllergy = (id) => {
-        if (selectedIds.includes(id)) {
-            // Si ya existe, lo sacamos (No soy alérgico)
-            setSelectedIds(selectedIds.filter(item => item !== id));
+    const toggleAllergy = (name) => {
+        if (!name) return; // Protección
+        if (selectedAllergies.includes(name)) {
+            setSelectedAllergies(selectedAllergies.filter(item => item !== name));
         } else {
-            // Si no existe, lo agregamos (Soy alérgico)
-            setSelectedIds([...selectedIds, id]);
+            setSelectedAllergies([...selectedAllergies, name]);
         }
     };
 
     const handleSave = async () => {
         try {
-            await userService.updateMyAllergies(selectedIds);
+            const payload = { allergies: selectedAllergies };
+            await userService.updateMyAllergies(payload);
             alert("¡Alergias actualizadas correctamente!");
         } catch (error) {
-            alert("Error al guardar alergias.");
+            const errorMsg = error.response?.data?.error || error.message;
+            alert("Error al guardar: " + errorMsg);
         }
     };
 
-    if (loading) return <div style={{padding:'20px'}}>Cargando ingredientes...</div>;
+    if (loading) return <div style={{padding:'20px'}}>Cargando...</div>;
 
     return (
         <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
-            <h1>Mis Alergias</h1>
-            <p>Por favor, marca los ingredientes a los que eres alérgico. El sistema te avisará si intentas comprar un producto peligroso.</p>
+            <h1>Mis Alergias (Modo Debug)</h1>
+            
+            {/* --- CAJA DE DIAGNÓSTICO --- */}
+            <div style={{ background: '#f0f0f0', padding: '10px', marginBottom: '20px', borderRadius: '5px', fontSize: '12px', fontFamily: 'monospace' }}>
+                <strong>Lo que React está viendo:</strong>
+                <pre>{JSON.stringify(allIngredients, null, 2)}</pre>
+            </div>
+            {/* --------------------------- */}
 
-            <div style={{ 
-                display: 'flex', 
-                flexWrap: 'wrap', 
-                gap: '10px', 
-                margin: '30px 0',
-                padding: '20px',
-                border: '1px solid #eee',
-                borderRadius: '8px'
-            }}>
-                {allIngredients.length === 0 && <p>No hay ingredientes registrados en el sistema aún.</p>}
-                
-                {allIngredients.map(ing => {
-                    const isSelected = selectedIds.includes(ing.id);
+            <p>Selecciona tus alergias:</p>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '20px' }}>
+                {/* Protección: Si allIngredients no es array, no intenta mapear */}
+                {Array.isArray(allIngredients) && allIngredients.map((ing, index) => {
+                    // Intento de obtener el nombre de varias formas por si acaso
+                    const displayName = ing.name || ing.nombre || "SIN NOMBRE";
+                    const isSelected = selectedAllergies.includes(displayName);
+                    
                     return (
                         <button
-                            key={ing.id}
-                            onClick={() => toggleAllergy(ing.id)}
+                            key={ing.id || index} 
+                            onClick={() => toggleAllergy(displayName)}
                             style={{
                                 padding: '10px 20px',
                                 borderRadius: '20px',
@@ -75,18 +79,17 @@ const StudentAllergiesPage = () => {
                                 backgroundColor: isSelected ? '#ffebee' : 'white',
                                 color: isSelected ? '#d32f2f' : '#333',
                                 cursor: 'pointer',
-                                fontWeight: isSelected ? 'bold' : 'normal',
-                                transition: 'all 0.2s'
+                                fontWeight: isSelected ? 'bold' : 'normal'
                             }}
                         >
-                            {ing.nombre} {isSelected && '⚠️'}
+                            {displayName} {isSelected && '⚠️'}
                         </button>
                     );
                 })}
             </div>
 
             <Button onClick={handleSave} style={{ width: '100%', backgroundColor: '#d32f2f' }}>
-                Guardar Mis Alergias
+                Guardar
             </Button>
         </div>
     );
