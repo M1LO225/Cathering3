@@ -21,7 +21,7 @@ class ColegioService {
      * Obtiene los detalles del colegio del admin logueado
      */
     async getMyColegioDetails() {
-        const response = await fetch(`${API_BASE_URL}/colegio/me`, {
+        const response = await fetch(`${API_BASE_URL}/auth/colegio`, {
             method: 'GET',
             headers: this.headers,
         });
@@ -32,7 +32,7 @@ class ColegioService {
      * Actualiza los detalles del colegio del admin logueado
      */
     async updateMyColegioDetails(data) {
-        const response = await fetch(`${API_BASE_URL}/colegio/me`, {
+        const response = await fetch(`${API_BASE_URL}/auth/colegio`, {
             method: 'PUT',
             headers: this.headers,
             body: JSON.stringify(data),

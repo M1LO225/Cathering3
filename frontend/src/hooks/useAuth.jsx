@@ -9,119 +9,149 @@ import WalletService from '../services/WalletService';
 const AuthContext = createContext();
 
 const parseJwt = (token) => {
-    try {
-        if (!token) return null;
-        const base64Url = token.split('.')[1];
-        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const jsonPayload = decodeURIComponent(atob(base64).split("").map(function(c) {
-            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-        }).join(""));
-        
-        const decoded = JSON.parse(jsonPayload);
-        
-        return {
-            id: decoded.userId,
-            username: decoded.username,
-            role: decoded.role,
-            colegio_id: decoded.colegio_id,
-            exp: decoded.exp 
-        };
-    } catch (e) {
-        console.error("Failed to parse JWT:", e);
-        return null;
-    }
+    try {
+        // 1. Validación estricta: Si no es string o está vacío, salimos sin error
+        if (!token || typeof token !== 'string') {
+            return null;
+        }
+
+        // 2. Verificar estructura JWT (debe tener 3 partes separadas por puntos)
+        const parts = token.split('.');
+        if (parts.length !== 3) {
+            return null;
+        }
+
+        const base64Url = parts[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split("").map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(""));
+        
+        const decoded = JSON.parse(jsonPayload);
+        
+        return {
+            id: decoded.id, 
+            username: decoded.username,
+            role: decoded.role,
+            colegio_id: decoded.colegio_id,
+            exp: decoded.exp 
+        };
+    } catch (e) {
+        console.warn("JWT inválido o corrupto:", e);
+        return null;
+    }
 };
 
 export const AuthProvider = ({ children }) => {
-    const initialToken = localStorage.getItem('token');
-    const [token, setToken] = useState(initialToken);
-    const [user, setUser] = useState(parseJwt(initialToken)); 
-    const [loading, setLoading] = useState(true); 
+    // Lectura segura del localStorage
+    const initialToken = localStorage.getItem('token');
+    
+    // Verificamos si el token guardado es válido antes de usarlo
+    const initialUser = parseJwt(initialToken);
+    
+    const [token, setToken] = useState(initialUser ? initialToken : null);
+    const [user, setUser] = useState(initialUser); 
+    const [loading, setLoading] = useState(true); 
 
-    const authService = AuthService;
-    
-    // Servicios dependientes del token
-    const userService = useMemo(() => token ? new UserService(token) : null, [token]);
-    const colegioService = useMemo(() => token ? new ColegioService(token) : null, [token]);
-    const productService = useMemo(() => token ? new ProductService(token) : null, [token]);
-    const orderService = useMemo(() => token ? new OrderService(token) : null, [token]);
+    const authService = AuthService;
+    
+    // Inicialización de servicios (Solo si hay token válido)
+    const userService = useMemo(() => token ? new UserService(token) : null, [token]);
+    const colegioService = useMemo(() => token ? new ColegioService(token) : null, [token]);
+    const productService = useMemo(() => token ? new ProductService(token) : null, [token]);
+    const orderService = useMemo(() => token ? new OrderService(token) : null, [token]);
     const walletService = useMemo(() => token ? new WalletService(token) : null, [token]);
 
-    const logout = () => {
-        localStorage.removeItem('token');
-        setToken(null);
-        setUser(null);
-    };
+    const logout = () => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setToken(null);
+        setUser(null);
+    };
 
-    const register = async (formData) => {
-        setLoading(true);
-        try {
-            const data = await authService.register(formData); 
-            setLoading(false);
-            return data;
-        } catch (error) {
-            setLoading(false);
-            throw error;
-        }
-    };
+    const register = async (formData) => {
+        setLoading(true);
+        try {
+            const data = await authService.register(formData); 
+            setLoading(false);
+            return data;
+        } catch (error) {
+            setLoading(false);
+            throw error;
+        }
+    };
 
-    const loginFn = async (usernameOrEmail, password) => {
-        setLoading(true);
-        try {
-            const userData = await authService.login(usernameOrEmail, password); 
-            const newToken = localStorage.getItem('token');
-            
-            setUser(userData); 
-            setToken(newToken); 
+    const loginFn = async (usernameOrEmail, password) => {
+        setLoading(true);
+        try {
+            const response = await authService.login(usernameOrEmail, password); 
+            
+            // Aseguramos obtener SOLO el string del token
+            let tokenString = null;
 
-            setLoading(false);
-            return userData;
-        } catch(error) {
-            setLoading(false);
-            throw error;
-        }
-    };
+            if (response && typeof response === 'string') {
+                tokenString = response;
+            } else if (response && response.token) {
+                tokenString = response.token;
+            }
 
-    useEffect(() => {
-        setLoading(true);
-        if (token) {
-            const parsedUser = parseJwt(token); 
-            const currentTime = Date.now() / 1000;
-            
-            if (parsedUser && parsedUser.exp > currentTime) {
-                if (!user) {
-                    setUser(parsedUser);
-                }
-            } else {
-                logout(); 
-            }
-        } else {
-            setUser(null);
-        }
-        setLoading(false);
-    }, [token]); 
+            if (tokenString) {
+                localStorage.setItem('token', tokenString);
+                setToken(tokenString);
+                setUser(parseJwt(tokenString)); 
+            } else {
+                console.error("Respuesta de login no contiene un token válido:", response);
+            }
 
-    const contextValue = useMemo(() => ({
-        token,
-        user, 
-        isAuthenticated: !!user, 
-        loading,
-        login: loginFn,
-        register,
-        logout,
-        authService,
-        userService,
-        colegioService,
-        productService,
-        orderService,
+            setLoading(false);
+            return response;
+        } catch(error) {
+            setLoading(false);
+            throw error;
+        }
+    };
+
+    useEffect(() => {
+        setLoading(true);
+        if (token) {
+            const parsedUser = parseJwt(token); 
+            const currentTime = Date.now() / 1000;
+            
+            // Si el token expira o es inválido (parsedUser es null)
+            if (parsedUser && parsedUser.exp > currentTime) {
+                if (!user) {
+                    setUser(parsedUser);
+                }
+            } else {
+                logout(); 
+            }
+        } else {
+            setUser(null);
+        }
+        setLoading(false);
+    }, [token]); 
+
+    const contextValue = useMemo(() => ({
+        token,
+        user, 
+        isAuthenticated: !!user, 
+        loading,
+        login: loginFn,
+        register,
+        logout,
+        authService,
+        userService,     
+        colegioService,
+        productService,
+        orderService,
         walletService
-    }), [token, user, loading, authService, userService, colegioService, productService, orderService, walletService, loginFn, register]);
+    }), [token, user, loading, userService, colegioService, productService, orderService, walletService, loginFn, register]);
 
-    return (
-        <AuthContext.Provider value={contextValue}>
-            {children}
-        </AuthContext.Provider>
-    );
+    return (
+        <AuthContext.Provider value={contextValue}>
+            {children}
+        </AuthContext.Provider>
+    );
 };
 
 export const useAuth = () => useContext(AuthContext);

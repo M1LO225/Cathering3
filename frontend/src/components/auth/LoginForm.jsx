@@ -32,11 +32,11 @@ const LoginForm = () => {
                 formData.usernameOrEmail,
                 formData.password
             );
-            if (user.role === 'COLEGIO_ADMIN') {
+            if (user.role === 'admin') {
                 navigate('/manage-users');
-            }else if (user.role === 'CAFETERIA'){
+            }else if (user.role === 'cafeteria'){
                 navigate('/manage-menu');
-            }else if (user.role === 'ESTUDIANTE'){
+            }else if (user.role === 'estudiante' || user.role === 'personal_academico'){
                 navigate('/menu');
             } else {
                 navigate('/dashboard'); // Fallback por si acaso

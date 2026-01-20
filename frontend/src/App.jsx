@@ -18,7 +18,6 @@ const Navigation = () => {
 
     return (
         <nav>
-
             <Link to="/">App Cathering</Link>
             
             {!isAuthenticated ? (
@@ -28,23 +27,24 @@ const Navigation = () => {
                 </>
             ) : (
                 <>
-
-                    {user?.role === 'COLEGIO_ADMIN' && (
+                    
+                    {user?.role === 'admin' && (
                         <>
                             <Link to="/manage-users">Usuarios</Link>
                             <Link to="/manage-colegio">Mi Colegio</Link>
                         </>
                     )}
                     
-
-                    {user?.role === 'CAFETERIA' && (
+                    
+                    {user?.role === 'cafeteria' && (
                         <>
                             <Link to="/manage-menu">Gestionar Menú</Link>
                             <Link to="/kitchen">Cocina</Link> 
                         </>
                     )}
 
-                    {(user?.role === 'ESTUDIANTE' || user?.role === 'PERSONAL_ACADEMICO') && (
+                    
+                    {(user?.role === 'estudiante' || user?.role === 'personal_academico') && (
                         <>
                             <Link to="/menu">Ver Menú</Link>
                             <Link to="/allergies" style={{ color: '#ffeb3b' }}>Mis Alergias</Link>
@@ -86,15 +86,13 @@ const App = () => {
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/register" element={<RegisterPage />} />
                     
-                    <Route element={<ProtectedRoute />}>
+                    <Route element={<ProtectedRoute allowedRoles={['admin', 'cafeteria', 'estudiante', 'personal_academico']} />}>
 
                         <Route path="/manage-users" element={<UserManagementPage />} />
                         <Route path="/manage-colegio" element={<ColegioProfilePage />} />
 
-
                         <Route path="/manage-menu" element={<CafeteriaDashboard />} />
                         <Route path="/kitchen" element={<CafeteriaOrdersPage />} />
-
 
                         <Route path="/menu" element={<StudentMenuPage />} />
                         <Route path="/allergies" element={<AllergiesManager />} />

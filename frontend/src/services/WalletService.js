@@ -1,4 +1,5 @@
-const API_BASE_URL = 'http://localhost:3000/api';
+// frontend/src/services/WalletService.js
+const API_BASE_URL = 'http://localhost:3003/api/wallet';
 
 class WalletService {
     constructor(token) {
@@ -10,17 +11,27 @@ class WalletService {
     }
 
     async getBalance() {
-        const response = await fetch(`${API_BASE_URL}/wallet`, { headers: this.headers });
-        return response.json();
+        // Apuntamos a /balance (Wallet Service)
+        const response = await fetch(`${API_BASE_URL}/balance`, {
+            method: 'GET',
+            headers: this.headers,
+        });
+        
+        if (!response.ok) throw new Error('Error al obtener saldo');
+        return response.json(); 
     }
 
-    async topUp(amount) {
-        const response = await fetch(`${API_BASE_URL}/wallet/topup`, {
+    async recharge(amount) {
+        // Apuntamos a /toup (Wallet Service)
+        const response = await fetch(`${API_BASE_URL}/topup`, {
             method: 'POST',
             headers: this.headers,
             body: JSON.stringify({ amount }),
         });
+
+        if (!response.ok) throw new Error('Error en la recarga');
         return response.json();
     }
 }
+
 export default WalletService;
