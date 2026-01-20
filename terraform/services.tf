@@ -7,14 +7,27 @@ resource "aws_lb_target_group" "gateway" {
   protocol    = "HTTP"
   vpc_id      = module.vpc.vpc_id
   target_type = "ip"
-  health_check { path = "/health"; matcher = "200-499" } # Tolerante a errores
+
+  health_check {
+    path    = "/health"
+    matcher = "200-499"
+  }
 }
 
 resource "aws_lb_listener_rule" "gateway_rule" {
   listener_arn = aws_lb_listener.http.arn
   priority     = 100
-  action { type = "forward"; target_group_arn = aws_lb_target_group.gateway.arn }
-  condition { path_pattern { values = ["/api/*"] } } # Todo lo que empiece por /api va al gateway
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.gateway.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/api/*"]
+    }
+  }
 }
 
 resource "aws_ecs_task_definition" "gateway" {
@@ -32,12 +45,16 @@ resource "aws_ecs_task_definition" "gateway" {
     portMappings = [{ containerPort = 3000 }]
     environment = [
       { name = "ORDER_SERVICE_URL", value = "http://order.cat.local:3000" },
-      { name = "AUTH_SERVICE_URL", value = "http://auth.cat.local:3000" }, # Cambia 3000 si Auth usa otro puerto
+      { name = "AUTH_SERVICE_URL", value = "http://auth.cat.local:3000" },
       { name = "CATALOG_SERVICE_URL", value = "http://catalog.cat.local:3000" }
     ]
     logConfiguration = {
-        logDriver = "awslogs"
-        options = { "awslogs-group" = "/ecs/cat-prod", "awslogs-region" = var.aws_region, "awslogs-stream-prefix" = "gateway" }
+      logDriver = "awslogs"
+      options = {
+        "awslogs-group"         = "/ecs/cat-prod"
+        "awslogs-region"        = var.aws_region
+        "awslogs-stream-prefix" = "gateway"
+      }
     }
   }])
 }
@@ -48,10 +65,12 @@ resource "aws_ecs_service" "gateway" {
   task_definition = aws_ecs_task_definition.gateway.arn
   desired_count   = 1
   launch_type     = "FARGATE"
+
   network_configuration {
     subnets         = module.vpc.private_subnets
     security_groups = [aws_security_group.apps_sg.id]
   }
+
   load_balancer {
     target_group_arn = aws_lb_target_group.gateway.arn
     container_name   = "api-gateway"
@@ -62,12 +81,14 @@ resource "aws_ecs_service" "gateway" {
 # ==========================================
 # 2. ORDER SERVICE
 # ==========================================
-# Registro de DNS Interno (Para que api-gateway lo encuentre como order.cat.local)
 resource "aws_service_discovery_service" "order" {
   name = "order"
   dns_config {
     namespace_id = aws_service_discovery_private_dns_namespace.main.id
-    dns_records { ttl = 10; type = "A" }
+    dns_records {
+      ttl  = 10
+      type = "A"
+    }
   }
 }
 
@@ -90,11 +111,15 @@ resource "aws_ecs_task_definition" "order" {
       { name = "DB_PASS", value = aws_db_instance.postgres.password },
       { name = "DB_NAME", value = aws_db_instance.postgres.db_name },
       { name = "NODE_ENV", value = "production" },
-      { name = "SQS_WALLET_URL", value = aws_sqs_queue.wallet_deduction.id } 
+      { name = "SQS_WALLET_URL", value = aws_sqs_queue.wallet_deduction.id }
     ]
     logConfiguration = {
-        logDriver = "awslogs"
-        options = { "awslogs-group" = "/ecs/cat-prod", "awslogs-region" = var.aws_region, "awslogs-stream-prefix" = "order" }
+      logDriver = "awslogs"
+      options = {
+        "awslogs-group"         = "/ecs/cat-prod"
+        "awslogs-region"        = var.aws_region
+        "awslogs-stream-prefix" = "order"
+      }
     }
   }])
 }
@@ -105,12 +130,15 @@ resource "aws_ecs_service" "order" {
   task_definition = aws_ecs_task_definition.order.arn
   desired_count   = 1
   launch_type     = "FARGATE"
+
   network_configuration {
     subnets         = module.vpc.private_subnets
     security_groups = [aws_security_group.apps_sg.id]
   }
-  # Esta linea es la MAGIA: Registra la IP en el DNS interno
-  service_registries { registry_arn = aws_service_discovery_service.order.arn }
+
+  service_registries {
+    registry_arn = aws_service_discovery_service.order.arn
+  }
 }
 
 # ==========================================
@@ -120,7 +148,10 @@ resource "aws_service_discovery_service" "auth" {
   name = "auth"
   dns_config {
     namespace_id = aws_service_discovery_private_dns_namespace.main.id
-    dns_records { ttl = 10; type = "A" }
+    dns_records {
+      ttl  = 10
+      type = "A"
+    }
   }
 }
 
@@ -136,8 +167,7 @@ resource "aws_ecs_task_definition" "auth" {
   container_definitions = jsonencode([{
     name  = "auth-service"
     image = "${var.account_id}.dkr.ecr.us-east-1.amazonaws.com/auth-service:latest"
-    # OJO: Si auth corre en 3001, cambia esto. Si en dockerfile dice EXPOSE 3000, pon 3000
-    portMappings = [{ containerPort = 3001 }] 
+    portMappings = [{ containerPort = 3001 }]
     environment = [
       { name = "DB_HOST", value = aws_db_instance.postgres.address },
       { name = "DB_USER", value = aws_db_instance.postgres.username },
@@ -147,8 +177,12 @@ resource "aws_ecs_task_definition" "auth" {
       { name = "SQS_WALLET_URL", value = aws_sqs_queue.wallet_deduction.id }
     ]
     logConfiguration = {
-        logDriver = "awslogs"
-        options = { "awslogs-group" = "/ecs/cat-prod", "awslogs-region" = var.aws_region, "awslogs-stream-prefix" = "auth" }
+      logDriver = "awslogs"
+      options = {
+        "awslogs-group"         = "/ecs/cat-prod"
+        "awslogs-region"        = var.aws_region
+        "awslogs-stream-prefix" = "auth"
+      }
     }
   }])
 }
@@ -159,11 +193,15 @@ resource "aws_ecs_service" "auth" {
   task_definition = aws_ecs_task_definition.auth.arn
   desired_count   = 1
   launch_type     = "FARGATE"
+
   network_configuration {
     subnets         = module.vpc.private_subnets
     security_groups = [aws_security_group.apps_sg.id]
   }
-  service_registries { registry_arn = aws_service_discovery_service.auth.arn }
+
+  service_registries {
+    registry_arn = aws_service_discovery_service.auth.arn
+  }
 }
 
 # ==========================================
@@ -175,15 +213,27 @@ resource "aws_lb_target_group" "frontend" {
   protocol    = "HTTP"
   vpc_id      = module.vpc.vpc_id
   target_type = "ip"
-  health_check { path = "/"; matcher = "200" }
+
+  health_check {
+    path    = "/"
+    matcher = "200"
+  }
 }
 
-# El Frontend es la ruta "por defecto" si no es /api/
 resource "aws_lb_listener_rule" "frontend_rule" {
   listener_arn = aws_lb_listener.http.arn
   priority     = 200
-  action { type = "forward"; target_group_arn = aws_lb_target_group.frontend.arn }
-  condition { path_pattern { values = ["/*"] } }
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.frontend.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/*"]
+    }
+  }
 }
 
 resource "aws_ecs_task_definition" "frontend" {
@@ -199,8 +249,12 @@ resource "aws_ecs_task_definition" "frontend" {
     image = "${var.account_id}.dkr.ecr.us-east-1.amazonaws.com/frontend:latest"
     portMappings = [{ containerPort = 80 }]
     logConfiguration = {
-        logDriver = "awslogs"
-        options = { "awslogs-group" = "/ecs/cat-prod", "awslogs-region" = var.aws_region, "awslogs-stream-prefix" = "frontend" }
+      logDriver = "awslogs"
+      options = {
+        "awslogs-group"         = "/ecs/cat-prod"
+        "awslogs-region"        = var.aws_region
+        "awslogs-stream-prefix" = "frontend"
+      }
     }
   }])
 }
@@ -211,10 +265,12 @@ resource "aws_ecs_service" "frontend" {
   task_definition = aws_ecs_task_definition.frontend.arn
   desired_count   = 1
   launch_type     = "FARGATE"
+
   network_configuration {
     subnets         = module.vpc.private_subnets
     security_groups = [aws_security_group.apps_sg.id]
   }
+
   load_balancer {
     target_group_arn = aws_lb_target_group.frontend.arn
     container_name   = "frontend"

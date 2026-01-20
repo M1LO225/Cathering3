@@ -21,22 +21,22 @@ provider "aws" {
 # --- VPC ---
 module "vpc" {
   source = "terraform-aws-modules/vpc/aws"
-  name = "cat-prod-vpc"
-  cidr = "10.0.0.0/16"
+  name   = "cat-prod-vpc"
+  cidr   = "10.0.0.0/16"
+  version = "5.8.1"
 
   azs             = ["us-east-1a", "us-east-1b"]
   private_subnets = ["10.0.1.0/24", "10.0.2.0/24"]     # Apps y DB
   public_subnets  = ["10.0.101.0/24", "10.0.102.0/24"] # Load Balancer
 
-  enable_nat_gateway = true
-  single_nat_gateway = true 
+  enable_nat_gateway   = true
+  single_nat_gateway   = true
   enable_dns_hostnames = true
 }
 
 # --- DNS PÚBLICO (Para Hostinger) ---
-# Esto generará los Name Servers que necesitas
 resource "aws_route53_zone" "main" {
-  name = "aws.nexouniversitario.com" # Tu subdominio delegado
+  name = "aws.nexouniversitario.com"
 }
 
 # --- Service Discovery (DNS Interno) ---
@@ -54,28 +54,62 @@ resource "aws_service_discovery_private_dns_namespace" "main" {
 resource "aws_security_group" "alb_sg" {
   name   = "cat-prod-alb-sg"
   vpc_id = module.vpc.vpc_id
-  ingress { from_port = 80; to_port = 80; protocol = "tcp"; cidr_blocks = ["0.0.0.0/0"] }
-  egress  { from_port = 0; to_port = 0; protocol = "-1"; cidr_blocks = ["0.0.0.0/0"] }
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
 # Apps SG (Privado)
 resource "aws_security_group" "apps_sg" {
   name   = "cat-prod-apps-sg"
   vpc_id = module.vpc.vpc_id
-  
+
   # Acepta tráfico del ALB
-  ingress { from_port = 0; to_port = 65535; protocol = "tcp"; security_groups = [aws_security_group.alb_sg.id] }
-  # Acepta tráfico entre ellos mismos (Order -> Auth)
-  ingress { from_port = 0; to_port = 65535; protocol = "tcp"; self = true }
-  
-  egress  { from_port = 0; to_port = 0; protocol = "-1"; cidr_blocks = ["0.0.0.0/0"] }
+  ingress {
+    from_port       = 0
+    to_port         = 65535
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb_sg.id]
+  }
+
+  # Acepta tráfico entre ellos mismos
+  ingress {
+    from_port = 0
+    to_port   = 65535
+    protocol  = "tcp"
+    self      = true
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
 # DB SG (Solo desde Apps)
 resource "aws_security_group" "db_sg" {
   name   = "cat-prod-db-sg"
   vpc_id = module.vpc.vpc_id
-  ingress { from_port = 5432; to_port = 5432; protocol = "tcp"; security_groups = [aws_security_group.apps_sg.id] }
+
+  ingress {
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [aws_security_group.apps_sg.id]
+  }
 }
 
 # ==========================================
@@ -89,26 +123,33 @@ resource "aws_db_subnet_group" "main" {
 }
 
 resource "aws_db_instance" "postgres" {
-  identifier           = "cat-prod-db"
-  allocated_storage    = 20
-  engine               = "postgres"
-  engine_version       = "16.3"
-  instance_class       = "db.t3.micro"
-  db_name              = "cateringdb"
-  username             = "catering_admin"
-  password             = "PasswordSuperSeguro123!" 
-  skip_final_snapshot  = true
-  publicly_accessible  = false
+  identifier             = "cat-prod-db"
+  allocated_storage      = 20
+  engine                 = "postgres"
+  engine_version         = "16.3"
+  instance_class         = "db.t3.micro"
+  db_name                = "cateringdb"
+  username               = "catering_admin"
+  password               = "PasswordSuperSeguro123!"
+  skip_final_snapshot    = true
+  publicly_accessible    = false
   vpc_security_group_ids = [aws_security_group.db_sg.id]
   db_subnet_group_name   = aws_db_subnet_group.main.name
 }
 
 # --- SQS Queues ---
-resource "aws_sqs_queue" "wallet_deduction" { name = "cat-prod-wallet-deduction" }
-resource "aws_sqs_queue" "order_result" { name = "cat-prod-order-result" }
+resource "aws_sqs_queue" "wallet_deduction" {
+  name = "cat-prod-wallet-deduction"
+}
+
+resource "aws_sqs_queue" "order_result" {
+  name = "cat-prod-order-result"
+}
 
 # --- Cluster ECS ---
-resource "aws_ecs_cluster" "main" { name = "cat-prod-cluster" }
+resource "aws_ecs_cluster" "main" {
+  name = "cat-prod-cluster"
+}
 
 # --- Logs ---
 resource "aws_cloudwatch_log_group" "main" {
@@ -132,9 +173,14 @@ resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.main.arn
   port              = "80"
   protocol          = "HTTP"
+
   default_action {
     type = "fixed-response"
-    fixed_response { content_type = "text/plain"; message_body = "Catering API Gateway OK"; status_code = "200" }
+    fixed_response {
+      content_type = "text/plain"
+      message_body = "Catering API Gateway OK"
+      status_code  = "200"
+    }
   }
 }
 
@@ -142,23 +188,41 @@ resource "aws_lb_listener" "http" {
 resource "aws_iam_role" "ecs_execution_role" {
   name = "cat-prod-ecs-exec-role"
   assume_role_policy = jsonencode({
-    Version = "2012-10-17", Statement = [{ Action = "sts:AssumeRole", Effect = "Allow", Principal = { Service = "ecs-tasks.amazonaws.com" } }]
+    Version = "2012-10-17",
+    Statement = [{
+      Action = "sts:AssumeRole",
+      Effect = "Allow",
+      Principal = { Service = "ecs-tasks.amazonaws.com" }
+    }]
   })
 }
+
 resource "aws_iam_role_policy_attachment" "ecs_exec_policy" {
-  role = aws_iam_role.ecs_execution_role.name; policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+  role       = aws_iam_role.ecs_execution_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
 resource "aws_iam_role" "ecs_task_role" {
   name = "cat-prod-ecs-task-role"
   assume_role_policy = jsonencode({
-    Version = "2012-10-17", Statement = [{ Action = "sts:AssumeRole", Effect = "Allow", Principal = { Service = "ecs-tasks.amazonaws.com" } }]
+    Version = "2012-10-17",
+    Statement = [{
+      Action = "sts:AssumeRole",
+      Effect = "Allow",
+      Principal = { Service = "ecs-tasks.amazonaws.com" }
+    }]
   })
 }
+
 resource "aws_iam_role_policy" "sqs_access" {
   name = "sqs-access"
   role = aws_iam_role.ecs_task_role.id
   policy = jsonencode({
-    Version = "2012-10-17", Statement = [{ Action = "sqs:*", Effect = "Allow", Resource = "*" }]
+    Version = "2012-10-17",
+    Statement = [{
+      Action   = "sqs:*",
+      Effect   = "Allow",
+      Resource = "*"
+    }]
   })
 }
