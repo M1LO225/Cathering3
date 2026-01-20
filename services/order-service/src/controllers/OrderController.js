@@ -9,16 +9,12 @@ class OrderController {
 
     // --- 1. CREAR PEDIDO (DEBUG MODE) ---
     async createOrder(req, res) {
-        console.log("🚀 INICIANDO PROCESO DE CREAR ORDEN...");
+        console.log("🚀 [ORDER] Iniciando pedido asíncrono...");
         try {
             const user = req.user;
-            const { items } = req.body; 
+            const { items } = req.body;
 
-            console.log(`👤 Usuario: ${user.id} | Colegio: ${user.colegio_id}`);
-
-            if (!items || items.length === 0) return res.status(400).json({ error: "Carrito vacío" });
-
-            // 1. Calcular
+            // 1. Calcular Total
             let total = 0;
             const orderItemsData = items.map(item => {
                 const price = parseFloat(item.price);
@@ -26,62 +22,53 @@ class OrderController {
                 total += price * qty;
                 return {
                     productId: item.id,
-                    productName: item.name, 
+                    productName: item.name,
                     quantity: qty,
                     price: price,
-                    removedIngredients: (item.removedIngredients && item.removedIngredients.length > 0) ? JSON.stringify(item.removedIngredients) : null
+                    removedIngredients: item.removedIngredients ? JSON.stringify(item.removedIngredients) : null
                 };
             });
-            console.log(`💰 Total calculado: ${total}`);
 
-            // 2. Wallet
-            const wallet = await this.Wallet.findOne({ where: { userId: user.id } });
-            if (!wallet) {
-                console.log("❌ Error: No hay billetera");
-                return res.status(404).json({ error: "Sin billetera" });
-            }
-            console.log(`💳 Saldo actual: ${wallet.balance}`);
-
-            if (parseFloat(wallet.balance) < total) {
-                console.log("❌ Error: Saldo insuficiente");
-                return res.status(400).json({ error: "Saldo insuficiente" });
-            }
-
-            // 3. Cobrar
-            const nuevoSaldo = parseFloat(wallet.balance) - total;
-            await wallet.update({ balance: nuevoSaldo });
-            console.log("✅ Cobro realizado en Wallet");
-
-            // 4. Crear Orden
-            console.log("💾 Intentando guardar Orden en DB...");
+            // 2. Crear Orden en estado PENDING (Pendiente de pago)
             const newOrder = await this.Order.create({
                 userId: user.id,
                 colegioId: user.colegio_id,
                 total: total,
-                status: 'PAID',
-                walletId: wallet.id
+                status: 'PENDING', // ⚠️ CAMBIO IMPORTANTE
+                walletId: null // Ya no sabemos el ID de la wallet aquí directamente
             });
-            console.log(`✅ ORDEN GUARDADA CON ÉXITO. ID: ${newOrder.id}`);
 
-            // 5. Items
+            // 3. Guardar Items
             const itemsToSave = orderItemsData.map(i => ({ ...i, OrderId: newOrder.id }));
             await this.OrderItem.bulkCreate(itemsToSave);
-            console.log("✅ Items guardados");
-            
-            res.status(201).json({ 
-                message: "Pedido realizado con éxito", 
-                order: newOrder,
-                nuevo_saldo: nuevoSaldo
+
+            // 4. 🌩️ ENVIAR MENSAJE A SQS (Comunicación Asíncrona)
+            const sqsParams = {
+                QueueUrl: process.env.SQS_WALLET_URL, // Inyectada por Terraform
+                MessageBody: JSON.stringify({
+                    type: 'DEDUCT_FUNDS',
+                    orderId: newOrder.id,
+                    userId: user.id,
+                    amount: total
+                })
+            };
+
+            await sqsClient.send(new SendMessageCommand(sqsParams));
+            console.log(`📨 Evento enviado a SQS para Orden #${newOrder.id}`);
+
+            // 5. Responder rápido al cliente (No esperar el pago)
+            res.status(201).json({
+                message: "Pedido recibido. Procesando pago en segundo plano.",
+                orderId: newOrder.id,
+                status: 'PENDING'
             });
 
         } catch (error) {
-            console.error("❌❌ ERROR FATAL EN CREATE ORDER ❌❌");
-            console.error(error); // ESTO ES LO QUE NECESITAMOS VER
-            res.status(500).json({ error: "Error procesando el pedido: " + error.message });
+            console.error("❌ Error creando orden:", error);
+            res.status(500).json({ error: error.message });
         }
     }
 
-    // ... Mantén el resto de métodos (getIncomingOrders, etc) igual ...
     async getIncomingOrders(req, res) {
         try {
             const user = req.user;

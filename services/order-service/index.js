@@ -11,11 +11,25 @@ app.use(cors());
 app.use(express.json());
 
 // 1. CONFIGURACIÓN DB
-const sequelize = new Sequelize({
-    dialect: 'sqlite',
-    storage: './orders_database.sqlite',
-    logging: false
-});
+const isProduction = process.env.NODE_ENV === 'production';
+
+const sequelize = new Sequelize(
+    process.env.DB_NAME || 'cateringdb',
+    process.env.DB_USER || 'root',
+    process.env.DB_PASS || null,
+    {
+        host: process.env.DB_HOST || 'localhost',
+        dialect: isProduction ? 'postgres' : 'sqlite',
+        storage: isProduction ? null : './database.sqlite',
+        logging: false,
+        dialectOptions: isProduction ? {
+            ssl: {
+                require: true,
+                rejectUnauthorized: false // Necesario para RDS en algunos modos
+            }
+        } : {}
+    }
+);
 
 // 2. IMPORTAR DEFINICIONES DE MODELOS
 // (Asegúrate de que las rutas sean correctas según tu estructura de carpetas)
