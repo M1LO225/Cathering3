@@ -1,4 +1,5 @@
-const { Op } = require('sequelize');
+// src/controllers/OrderController.js
+const { sendOrderToQueue } = require('../config/sqs');
 
 class OrderController {
     constructor(OrderModel, OrderItemModel, WalletModel) {
@@ -7,113 +8,139 @@ class OrderController {
         this.Wallet = WalletModel;
     }
 
-    // --- 1. CREAR PEDIDO (DEBUG MODE) ---
     async createOrder(req, res) {
-        console.log("🚀 [ORDER] Iniciando pedido asíncrono...");
+        console.log("📍 [CONTROLLER] Iniciando createOrder...");
+        
         try {
-            const user = req.user;
-            const { items } = req.body;
+            // PASO 1: Validar Usuario
+            if (!req.user) {
+                console.error("❌ [ERROR] req.user es undefined. El AuthMiddleware falló.");
+                return res.status(401).json({ error: "Usuario no identificado en el sistema" });
+            }
 
-            // 1. Calcular Total
-            let total = 0;
-            const orderItemsData = items.map(item => {
+            const userId = req.user.id;
+            const colegioId = req.user.colegio_id;
+            const { items } = req.body; 
+
+            // PASO 2: Validar Items
+            if (!items || !Array.isArray(items) || items.length === 0) {
+                console.error("❌ [ERROR] Items inválidos:", items);
+                return res.status(400).json({ error: "El carrito está vacío o formato incorrecto" });
+            }
+
+            console.log(`🛒 [ITEMS] Recibidos ${items.length} productos`);
+
+            // PASO 3: Calcular Total
+            let totalAmount = 0;
+            items.forEach(item => {
                 const price = parseFloat(item.price);
                 const qty = parseInt(item.quantity);
-                total += price * qty;
-                return {
-                    productId: item.id,
-                    productName: item.name,
-                    quantity: qty,
-                    price: price,
-                    removedIngredients: item.removedIngredients ? JSON.stringify(item.removedIngredients) : null
-                };
+                totalAmount += (price * qty);
             });
+            console.log(`💰 [TOTAL] Calculado: $${totalAmount}`);
 
-            // 2. Crear Orden en estado PENDING (Pendiente de pago)
+            // PASO 4: Crear Orden (Cabecera)
+            console.log("💾 [DB] Intentando crear orden PENDING...");
             const newOrder = await this.Order.create({
-                userId: user.id,
-                colegioId: user.colegio_id,
-                total: total,
-                status: 'PENDING', // ⚠️ CAMBIO IMPORTANTE
-                walletId: null // Ya no sabemos el ID de la wallet aquí directamente
+                userId,
+                colegioId,
+                total: totalAmount,
+                status: 'PENDING', 
+                walletId: null
             });
+            console.log(`✅ [DB] Orden creada con ID: ${newOrder.id}`);
 
-            // 3. Guardar Items
-            const itemsToSave = orderItemsData.map(i => ({ ...i, OrderId: newOrder.id }));
-            await this.OrderItem.bulkCreate(itemsToSave);
+            // PASO 5: Crear Items (Detalle)
+            console.log("💾 [DB] Guardando detalles de items...");
+            
+            // --- 🚨 AQUÍ ESTABA EL ERROR Y AQUÍ ESTÁ LA SOLUCIÓN ---
+            const orderItems = items.map(item => ({
+                // Antes decia: name: item.name
+                productName: item.name, // <--- CORRECCIÓN: Mapeamos al nombre de columna real
+                price: item.price,
+                quantity: item.quantity,
+                productId: item.id || item.productId,
+                removedIngredients: JSON.stringify(item.removedIngredients || []), // Aseguramos formato
+                OrderId: newOrder.id
+            }));
+            
+            await this.OrderItem.bulkCreate(orderItems);
+            // -------------------------------------------------------
 
-            // 4. 🌩️ ENVIAR MENSAJE A SQS (Comunicación Asíncrona)
-            const sqsParams = {
-                QueueUrl: process.env.SQS_WALLET_URL, // Inyectada por Terraform
-                MessageBody: JSON.stringify({
-                    type: 'DEDUCT_FUNDS',
-                    orderId: newOrder.id,
-                    userId: user.id,
-                    amount: total
-                })
+            // PASO 6: SQS
+            console.log("📨 [SQS] Preparando envío a cola...");
+            const messagePayload = {
+                type: 'PROCESS_PAYMENT',
+                orderId: newOrder.id,
+                userId: userId,
+                amount: totalAmount
             };
 
-            await sqsClient.send(new SendMessageCommand(sqsParams));
-            console.log(`📨 Evento enviado a SQS para Orden #${newOrder.id}`);
+            if (!process.env.SQS_WALLET_URL) {
+                console.error("🔥 [CRITICAL] SQS_WALLET_URL no está definida!");
+            }
 
-            // 5. Responder rápido al cliente (No esperar el pago)
-            res.status(201).json({
-                message: "Pedido recibido. Procesando pago en segundo plano.",
+            await sendOrderToQueue(messagePayload);
+            console.log("🚀 [SQS] Mensaje enviado exitosamente");
+
+            res.status(202).json({ 
+                message: "Orden recibida. Procesando pago...", 
                 orderId: newOrder.id,
                 status: 'PENDING'
             });
 
         } catch (error) {
-            console.error("❌ Error creando orden:", error);
-            res.status(500).json({ error: error.message });
+            console.error("❌ [EXCEPTION] Error en createOrder:", error);
+            console.error(error.stack);
+            res.status(500).json({ 
+                error: "Error interno procesando la orden",
+                details: error.message 
+            });
         }
     }
 
+    // ... MANTENER EL RESTO DE MÉTODOS IGUALES ...
     async getIncomingOrders(req, res) {
         try {
-            const user = req.user;
-            if (!user.colegio_id) return res.status(400).json({ error: "Usuario sin colegio" });
-
+            const userColegioId = req.user.colegio_id;
             const orders = await this.Order.findAll({
                 where: { 
-                    colegioId: user.colegio_id,
-                    status: { [Op.in]: ['PAID', 'EN_PREPARACION', 'LISTO'] }
+                    colegioId: userColegioId,
+                    status: ['PAID', 'READY', 'DELIVERED'] 
                 },
-                include: [{ model: this.OrderItem, as: 'items' }], 
-                order: [['createdAt', 'ASC']]
-            });
-            console.log(`📦 Cocina: Encontrados ${orders.length} pedidos para colegio ${user.colegio_id}`);
-            res.json(orders);
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ error: "Error obteniendo pedidos" });
-        }
-    }
-
-    async updateStatus(req, res) {
-        try {
-            const { id } = req.params;
-            const { status } = req.body;
-            const order = await this.Order.findByPk(id);
-            if (!order) return res.status(404).json({ error: "No encontrado" });
-            order.status = status;
-            await order.save();
-            res.json(order);
-        } catch (error) {
-            res.status(500).json({ error: "Error updating status" });
-        }
-    }
-
-    async getMyOrders(req, res) {
-        try {
-            const orders = await this.Order.findAll({
-                where: { userId: req.user.id },
                 include: [{ model: this.OrderItem, as: 'items' }],
                 order: [['createdAt', 'DESC']]
             });
             res.json(orders);
         } catch (error) {
-            res.status(500).json({ error: "Error getting orders" });
+            console.error(error);
+            res.status(500).json({ error: 'Error obteniendo ordenes' });
+        }
+    }
+
+    async getMyOrders(req, res) {
+        try {
+            const userId = req.user.id;
+            const orders = await this.Order.findAll({
+                where: { userId },
+                include: [{ model: this.OrderItem, as: 'items' }],
+                order: [['createdAt', 'DESC']]
+            });
+            res.json(orders);
+        } catch (error) {
+            console.error("Error obteniendo mis ordenes:", error);
+            res.status(500).json({ error: 'Error al obtener historial' });
+        }
+    }
+    
+    async updateStatus(req, res) {
+        try {
+            const { id } = req.params;
+            const { status } = req.body;
+            await this.Order.update({ status }, { where: { id } });
+            res.json({ success: true });
+        } catch (error) {
+            res.status(500).json({ error: 'Error actualizando estado' });
         }
     }
 }

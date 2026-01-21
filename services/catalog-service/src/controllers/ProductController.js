@@ -60,22 +60,28 @@ class ProductController {
             res.status(500).json({ error: error.message });
         }
     }
-
     // 2. Crear Producto
     async create(req, res) {
         try {
-            const { name, description, price, stock, preparationTime, category, ingredients, availableFrom, colegioId } = req.body;
+            // Extraemos los datos del formulario
+            const { name, description, price, stock, preparationTime, category, ingredients, availableFrom } = req.body;
             
+            // CORRECCIÓN: Obtenemos el colegioId desde el usuario autenticado (Token)
+            // Ya no lo esperamos del req.body.
+            const user = req.user; 
+            
+            // Validación de seguridad extra
+            if (!user || !user.colegio_id) {
+                return res.status(403).json({ error: 'Usuario no autorizado o sin colegio asignado.' });
+            }
+
             let imageUrl = null;
             if (req.file) {
                 imageUrl = `/uploads/${req.file.filename}`; 
             }
 
-            // --- VALIDACIÓN DE FECHA ESTRICTA ---
-            // Si lo que llega no es una fecha válida (YYYY-MM-DD), forzamos NULL
+            // Lógica de fecha (se mantiene igual)
             let validDate = null;
-            
-            // Verificamos si availableFrom tiene contenido y parece una fecha
             if (availableFrom && typeof availableFrom === 'string' && availableFrom.length >= 10) {
                  const parsedDate = Date.parse(availableFrom);
                  if (!isNaN(parsedDate)) {
@@ -92,14 +98,14 @@ class ProductController {
                 category,
                 image: imageUrl,
                 ingredients, 
-                availableFrom: validDate, // Aquí irá NULL si la fecha era "Invalid date" o vacía
-                colegioId
+                availableFrom: validDate,
+                colegioId: user.colegio_id // <--- USAMOS EL ID DEL TOKEN
             });
 
             res.status(201).json(newProduct);
         } catch (error) {
             console.error("Error creando producto:", error);
-            res.status(500).json({ error: 'Error al crear el producto.' });
+            res.status(500).json({ error: 'Error al crear el producto: ' + error.message });
         }
     }
 

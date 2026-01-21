@@ -51,7 +51,7 @@ UserModel.hasMany(TransactionModel, { foreignKey: 'userId', as: 'transactions' }
 TransactionModel.belongsTo(UserModel, { foreignKey: 'userId' });
 
 // 4. Sincronizar Base de Datos
-sequelize.sync()
+sequelize.sync({ alter: true })
     .then(() => {
         console.log('Base de datos sincronizada');
         
