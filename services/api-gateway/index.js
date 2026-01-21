@@ -9,10 +9,12 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 
 const services = {
-    auth: 'http://localhost:3001',   
-    catalog: 'http://localhost:3002', 
-    orders: 'http://localhost:3003'  
+    auth: process.env.AUTH_SERVICE_URL || 'http://localhost:3001',   
+    catalog: process.env.CATALOG_SERVICE_URL || 'http://localhost:3002', 
+    orders: process.env.ORDER_SERVICE_URL || 'http://localhost:3003'  
 };
+
+console.log('Configuración de Servicios:', services);
 
 // 1. Auth & Users & WALLET
 app.use(['/api/auth', '/api/users', '/api/wallet'], createProxyMiddleware({ 

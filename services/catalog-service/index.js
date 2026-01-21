@@ -18,14 +18,28 @@ if (!fs.existsSync(uploadDir)) {
 
 app.use('/uploads', express.static(uploadDir));
 
-// --- BASE DE DATOS ---
-const sequelize = new Sequelize({
-    dialect: 'sqlite',
-    storage: './catalog_database.sqlite', 
-    logging: false
-});
+// --- BASE DE DATOS CONFIGURADA PARA AWS ---
+const isProduction = process.env.NODE_ENV === 'production';
 
-// Importar Modelos
+const sequelize = new Sequelize(
+    process.env.DB_NAME || 'catalog_db',
+    process.env.DB_USER || 'root',
+    process.env.DB_PASS || null,
+    {
+        host: process.env.DB_HOST || 'localhost',
+        dialect: isProduction ? 'postgres' : 'sqlite',
+        storage: isProduction ? null : './catalog_database.sqlite',
+        logging: console.log, // Log activo para debug
+        dialectOptions: isProduction ? {
+            ssl: {
+                require: true,
+                rejectUnauthorized: false
+            }
+        } : {}
+    }
+);
+
+// Importar Modelos (Asegúrate que estas rutas existan en tu carpeta)
 const ProductDef = require('./src/models/ProductModel');
 const ColegioDef = require('./src/models/ColegioModel');
 const IngredientDef = require('./src/models/IngredientModel');
@@ -38,9 +52,13 @@ const Ingredient = IngredientDef(sequelize, DataTypes);
 Colegio.hasMany(Product, { foreignKey: 'colegioId' });
 Product.belongsTo(Colegio, { foreignKey: 'colegioId' });
 
+// Sincronización DB
+sequelize.sync().then(() => {
+    console.log("DB Catalog Sincronizada");
+}).catch(err => console.error("Error DB Catalog:", err));
+
 // Rutas
 const productRoutes = require('./src/routes/product.routes');
-
 // Inyección de modelos
 app.use('/', productRoutes(Product, Colegio, Ingredient));
 
