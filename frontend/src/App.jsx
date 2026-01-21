@@ -23,7 +23,7 @@ const Navigation = () => {
     return (
         <nav>
             <Link to="/" style={{ fontWeight: '800', fontSize: '1.2rem', color: '#FFCC33' }}>
-                App Cathering
+                Snack-Up
             </Link>
             
             {!isAuthenticated ? (
@@ -65,8 +65,9 @@ const Navigation = () => {
                             className="btn"
                             style={{ 
                                 padding: '6px 15px', 
-                                background: 'transparent', 
+                                background: 'var(--color-dark-coffee)', 
                                 border: '1px solid white', 
+                                color:'white',
                                 fontSize: '0.9rem' 
                             }}
                         >

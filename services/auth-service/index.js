@@ -8,7 +8,6 @@ const { Sequelize, DataTypes } = require('sequelize');
 const UserModelDef = require('./src/models/UserModel');
 const ColegioModelDef = require('./src/models/ColegioModel');
 const TransactionModelDef = require('./src/models/TransactionModel');
-const startPaymentWorker = require('./src/workers/paymentWorker');
 
 // Importar rutas
 const authRoutes = require('./src/routes/auth.routes');
@@ -54,11 +53,6 @@ TransactionModel.belongsTo(UserModel, { foreignKey: 'userId' });
 sequelize.sync({ alter: true })
     .then(() => {
         console.log('Base de datos sincronizada');
-        
-        // INICIAR EL WORKER SQS DESPUÉS DE CONECTAR A LA DB
-        if (process.env.SQS_WALLET_URL) {
-            startPaymentWorker(UserModel, TransactionModel); 
-        }
     })
     .catch(err => console.error('Error al sincronizar DB:', err));
 

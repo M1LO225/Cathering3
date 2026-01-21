@@ -13,38 +13,31 @@ class UserController {
         const { username, email, password } = req.body;
         
         try {
-            // El admin que hace la petición
             const adminId = req.user.id; 
             const adminUser = await this.userRepository.findById(adminId);
 
-            // Validación: El creador debe tener colegio
             if (!adminUser || !adminUser.colegio_id) {
-                return res.status(403).json({ error: 'No tienes un colegio asociado para realizar esta acción.' });
+                return res.status(403).json({ error: 'No tienes un colegio asociado.' });
             }
 
             const colegioId = adminUser.colegio_id;
 
             if (!username || !email || !password) {
-                return res.status(400).json({ error: 'Faltan datos requeridos (username, email, password).' });
+                return res.status(400).json({ error: 'Faltan datos requeridos.' });
             }
 
-            // Validación: Unicidad de Cafetería
             if (roleToCreate === 'cafeteria') {
                 const existingCafeteria = await this.userRepository.findOneByRoleAndColegio('cafeteria', colegioId);
                 if (existingCafeteria) {
-                    return res.status(400).json({ 
-                        error: 'Acción denegada: Este colegio ya tiene una Cafetería registrada.' 
-                    });
+                    return res.status(400).json({ error: 'Este colegio ya tiene una Cafetería registrada.' });
                 }
             }
 
-            // Validación: Existencia de usuario
             const existingUser = await this.userRepository.findByUsernameOrEmail(username, email);
             if (existingUser) {
                 return res.status(409).json({ error: 'El usuario o correo ya existe.' });
             }
 
-            // Creación
             const passwordHash = await this.encryptService.hash(password);
             
             const newUser = { 
@@ -53,148 +46,105 @@ class UserController {
                 passwordHash: passwordHash, 
                 role: roleToCreate, 
                 colegio_id: colegioId,
-                saldo: 0
+                saldo: 0,
+                allergies: '[]' // Inicializamos como string JSON vacío
             };
             
             const createdUser = await this.userRepository.save(newUser);
-            
-            // Respuesta limpia
             const userJson = createdUser.toJSON();
             delete userJson.password;
 
-            res.status(201).json({ 
-                message: `${roleToCreate} creado exitosamente.`,
-                user: userJson 
-            });
+            res.status(201).json({ message: `${roleToCreate} creado exitosamente.`, user: userJson });
 
         } catch (error) {
             console.error('Error creating user:', error);
             res.status(500).json({ error: error.message });
         }
     }
+
     async getColegio(req, res) {
         try {
-            const userId = req.user.id; // Obtenido del token
-            const colegio = await this.userRepository.findColegioByAdminId(userId);
-
-            if (!colegio) {
-                return res.status(404).json({ error: 'No se encontró un colegio asociado a este usuario.' });
-            }
-
+            const colegio = await this.userRepository.findColegioByAdminId(req.user.id);
+            if (!colegio) return res.status(404).json({ error: 'No encontrado.' });
             res.json(colegio);
         } catch (error) {
-            console.error('Error al obtener colegio:', error);
-            res.status(500).json({ error: 'Error interno del servidor.' });
+            res.status(500).json({ error: 'Error interno.' });
         }
     }
+
     async updateColegio(req, res) {
         try {
-            const adminId = req.user.id;
-            const updates = req.body;
-            
-            // Llamamos al repositorio
-            const updatedColegio = await this.userRepository.updateColegio(adminId, updates);
-            
-            if (!updatedColegio) {
-                return res.status(404).json({ error: 'No se pudo actualizar el colegio.' });
-            }
-
-            res.status(200).json({ 
-                message: 'Colegio actualizado correctamente.', 
-                colegio: updatedColegio 
-            });
-
+            const updated = await this.userRepository.updateColegio(req.user.id, req.body);
+            if (!updated) return res.status(404).json({ error: 'No se pudo actualizar.' });
+            res.status(200).json({ message: 'Colegio actualizado.', colegio: updated });
         } catch (error) {
-            console.error('Error updating colegio:', error);
-            res.status(500).json({ error: 'Error al actualizar el colegio.' });
+            res.status(500).json({ error: 'Error al actualizar.' });
         }
     }
 
-    // --- 2. LISTAR USUARIOS (Del mismo colegio) ---
+    // --- 2. LISTAR USUARIOS ---
     async listUsers(req, res) {
         try {
             const adminUser = await this.userRepository.findById(req.user.id);
-            if(!adminUser || !adminUser.colegio_id){
-                return res.status(400).json({ error: 'No perteneces a un colegio.' });
-            }
+            if(!adminUser || !adminUser.colegio_id) return res.status(400).json({ error: 'Error de permisos.' });
             const users = await this.userRepository.findAllByColegio(adminUser.colegio_id);
             res.status(200).json(users);
         } catch (error) {
-            res.status(500).json({ error: 'Error al listar usuarios.' });
+            res.status(500).json({ error: 'Error al listar.' });
         }
     }
 
-    // --- 3. ACTUALIZAR USUARIO (Nuevo) ---
+    // --- 3. ACTUALIZAR / ELIMINAR ---
     async update(req, res) {
-        const { id } = req.params;
-        const updates = req.body;
         try {
-            const updatedUser = await this.updateUserUseCase.execute(id, updates);
-            
-            res.status(200).json({ 
-                message: `Usuario actualizado correctamente.`, 
-                user: updatedUser 
-            });
+            const updatedUser = await this.updateUserUseCase.execute(req.params.id, req.body);
+            res.status(200).json({ message: `Actualizado.`, user: updatedUser });
         } catch (error) {
-            console.error('Error updating user:', error);
             res.status(400).json({ error: error.message });
         }
     }
 
-    // --- 4. ELIMINAR USUARIO ---
     async delete(req, res) {
-        const { id } = req.params;
         try {
-            const deleted = await this.userRepository.delete(id);
+            const deleted = await this.userRepository.delete(req.params.id);
             if (!deleted) return res.status(404).json({ error: 'Usuario no encontrado.' });
             res.status(200).json({ message: 'Usuario eliminado.' });
         } catch (error) {
-            res.status(500).json({ error: 'Error al eliminar usuario.' });
+            res.status(500).json({ error: 'Error al eliminar.' });
         }
     }
 
-    // --- UTILIDADES (Perfil, Alergias, Saldo) ---
+    // --- 4. UTILIDADES (Perfil, Saldo) ---
     async getProfile(req, res) {
         const u = await this.userRepository.findById(req.user.id);
         u ? res.json(u) : res.status(404).json({error: 'No encontrado'});
     }
-    async getMyAllergies(req, res) { res.json(await this.userRepository.getUserAllergies(req.user.id)); }
-    async updateMyAllergies(req, res) { await this.userRepository.updateAllergies(req.user.id, req.body.ingredientIds); res.json({msg: "OK"}); }
-    async getBalance(req, res) { const u = await this.userRepository.findById(req.user.id); res.json({saldo: u ? u.saldo : 0}); }
+
+    async getBalance(req, res) { 
+        const u = await this.userRepository.findById(req.user.id); 
+        res.json({saldo: u ? u.saldo : 0}); 
+    }
+
     async rechargeBalance(req, res) {
-        // Log para ver qué llega
-        console.log("--- INICIO RECARGA ---");
-        console.log("Body recibido:", req.body);
-        
         const t = await this.userRepository.sequelize.transaction(); 
         try {
-            const userId = req.user.id;
             const { amount } = req.body;
-
-            // Validación fuerte y conversión
             const amountFloat = parseFloat(amount);
             if (isNaN(amountFloat) || amountFloat <= 0) {
                 await t.rollback();
                 return res.status(400).json({ error: "Monto inválido" });
             }
 
-            const user = await this.userRepository.findById(userId);
+            const user = await this.userRepository.findById(req.user.id);
             if (!user) {
                 await t.rollback();
                 return res.status(404).json({ error: "Usuario no encontrado" });
             }
 
-            const saldoAnterior = parseFloat(user.saldo || 0);
-            const newBalance = saldoAnterior + amountFloat;
-
-            console.log(`Usuario: ${userId} | Saldo Anterior: ${saldoAnterior} | A sumar: ${amountFloat} | Nuevo: ${newBalance}`);
-
-            // 1. Actualizar saldo (Forzamos la actualización)
-            // Usamos user.set + user.save para asegurar compatibilidad
+            const newBalance = parseFloat(user.saldo || 0) + amountFloat;
             user.saldo = newBalance;
             await user.save({ transaction: t });
 
-            // 2. Registrar transacción
             if (this.TransactionModel) {
                 await this.TransactionModel.create({
                     userId: user.id,
@@ -205,39 +155,65 @@ class UserController {
             }
 
             await t.commit();
-            console.log("--- RECARGA FINALIZADA CON ÉXITO ---");
-            
             res.json({ message: "Recarga exitosa", saldo: newBalance });
-
         } catch (error) {
             await t.rollback();
-            console.error("ERROR EN RECARGA:", error);
-            res.status(500).json({ error: "Error en recarga: " + error.message });
+            res.status(500).json({ error: error.message });
         }
     }
     
+    // --- 5. ALERGIAS (CORREGIDO) ---
     async getMyAllergies(req, res) {
         try {
-            const allergies = await this.userRepository.getUserAllergies(req.user.id);
-            res.json(allergies); 
+            // Obtenemos el usuario completo o el campo específico
+            // NOTA: Asumimos que repository devuelve el objeto User de Sequelize
+            const user = await this.userRepository.findById(req.user.id);
+            
+            if (!user) return res.json([]); 
+
+            let allergiesData = user.allergies;
+
+            // FIX: Si viene como string de la DB (TEXT), lo parseamos a JSON
+            if (typeof allergiesData === 'string') {
+                try {
+                    allergiesData = JSON.parse(allergiesData);
+                } catch (e) {
+                    console.error("Error parseando alergias:", e);
+                    allergiesData = [];
+                }
+            }
+            
+            // Garantizamos devolver un array
+            res.json(Array.isArray(allergiesData) ? allergiesData : []); 
         } catch (error) {
+            console.error(error);
             res.status(500).json({ error: 'Error al obtener alergias' });
         }
     }
 
     async updateMyAllergies(req, res) {
         try {
-            const { allergies } = req.body; // Esperamos ['Lechuga', 'Tomate']
+            const { allergies } = req.body; 
+            
+            console.log(`🤧 [AUTH] Recibido update de alergias para User ${req.user.id}:`, allergies);
+
             if (!Array.isArray(allergies)) {
+                console.error("❌ [AUTH] Error: 'allergies' no es un array:", allergies);
                 return res.status(400).json({ error: "Se requiere un array de nombres" });
             }
-            await this.userRepository.updateAllergies(req.user.id, allergies);
+            
+            // --- CORRECCIÓN: NO HACEMOS STRINGIFY AQUÍ ---
+            // Pasamos el array puro. El repositorio (SQLiteUserRepository) ya hace el JSON.stringify internamente.
+            await this.userRepository.updateAllergies(req.user.id, allergies); 
+            // ---------------------------------------------
+
+            console.log("✅ [AUTH] Alergias guardadas correctamente en DB.");
             res.json({ message: "Alergias guardadas", allergies });
         } catch (error) {
+            console.error("🔥 [AUTH] Error guardando alergias:", error);
             res.status(500).json({ error: error.message });
         }
     }
 }
-
 
 module.exports = UserController;

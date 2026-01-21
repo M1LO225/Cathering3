@@ -19,17 +19,15 @@ class ProductController {
 
             // Filtro para Estudiantes Y Personal
             if (user && (user.role === 'estudiante' || user.role === 'personal_academico')) {
-                // Generamos la fecha de hoy asegurando formato YYYY-MM-DD
                 const now = new Date();
                 const today = now.toISOString().split('T')[0];
                 
-                // LÓGICA BLINDADA: Solo permitimos NULL o fechas menores/iguales a hoy
                 whereClause[Op.and] = [
                     { 
                         [Op.or]: [
-                            { availableFrom: null },           // Caso 1: Nunca se definió fecha (siempre visible)
-                            { availableFrom: { [Op.eq]: null } }, // Caso 1b: Refuerzo para nulos
-                            { availableFrom: { [Op.lte]: today } } // Caso 2: Fecha válida menor o igual a hoy
+                            { availableFrom: null },
+                            { availableFrom: { [Op.eq]: null } },
+                            { availableFrom: { [Op.lte]: today } }
                         ]
                     }
                 ];
@@ -40,11 +38,8 @@ class ProductController {
             // Corrección de rutas de imágenes
             const updatedProducts = products.map(p => {
                 const productData = p.toJSON();
-                
                 if (productData.image) {
-                    // Limpieza de localhost por si quedó basura antigua en la DB
                     let cleanImage = productData.image.replace('http://localhost:3000', '');
-                    
                     if (!cleanImage.startsWith('http') && !cleanImage.startsWith('/uploads')) {
                         productData.image = `/uploads/${cleanImage}`;
                     } else if (cleanImage.startsWith('/uploads')) {
@@ -60,17 +55,13 @@ class ProductController {
             res.status(500).json({ error: error.message });
         }
     }
-    // 2. Crear Producto
+
+    // 2. Crear Producto (+ AUTO-GENERACIÓN DE INGREDIENTES)
     async create(req, res) {
         try {
-            // Extraemos los datos del formulario
             const { name, description, price, stock, preparationTime, category, ingredients, availableFrom } = req.body;
-            
-            // CORRECCIÓN: Obtenemos el colegioId desde el usuario autenticado (Token)
-            // Ya no lo esperamos del req.body.
             const user = req.user; 
             
-            // Validación de seguridad extra
             if (!user || !user.colegio_id) {
                 return res.status(403).json({ error: 'Usuario no autorizado o sin colegio asignado.' });
             }
@@ -80,7 +71,6 @@ class ProductController {
                 imageUrl = `/uploads/${req.file.filename}`; 
             }
 
-            // Lógica de fecha (se mantiene igual)
             let validDate = null;
             if (availableFrom && typeof availableFrom === 'string' && availableFrom.length >= 10) {
                  const parsedDate = Date.parse(availableFrom);
@@ -89,6 +79,7 @@ class ProductController {
                  }
             }
 
+            // A. Creamos el producto
             const newProduct = await this.ProductModel.create({
                 name,
                 description,
@@ -99,8 +90,31 @@ class ProductController {
                 image: imageUrl,
                 ingredients, 
                 availableFrom: validDate,
-                colegioId: user.colegio_id // <--- USAMOS EL ID DEL TOKEN
+                colegioId: user.colegio_id
             });
+
+            // --- B. MAGIA: AUTO-POBLAR TABLA DE INGREDIENTES ---
+            if (ingredients && typeof ingredients === 'string') {
+                // 1. Separar por comas (ej: "Tomate, Queso, Pan") -> ["Tomate", "Queso", "Pan"]
+                // 2. Limpiar espacios (trim) y filtrar vacíos
+                const list = ingredients.split(',').map(i => i.trim()).filter(i => i.length > 0);
+                
+                console.log(`🥗 Procesando ingredientes para catálogo: ${list.join(', ')}`);
+
+                // 3. Guardar uno por uno (Si no existe, lo crea. Si existe, no hace nada)
+                for (const ingredientName of list) {
+                    try {
+                        await this.IngredientModel.findOrCreate({
+                            where: { name: ingredientName },
+                            defaults: { isCommon: true } // Asumimos que son comunes si están en el menú
+                        });
+                    } catch (err) {
+                        // Ignoramos errores de duplicados por si acaso, para no frenar la creación del producto
+                        console.warn(`⚠️ Ingrediente '${ingredientName}' ya existía o error menor.`);
+                    }
+                }
+            }
+            // ---------------------------------------------------
 
             res.status(201).json(newProduct);
         } catch (error) {
@@ -128,9 +142,10 @@ class ProductController {
         }
     }
 
-    // 4. Obtener Ingredientes
+    // 4. Obtener Ingredientes (Para el selector de Alergias)
     async getIngredients(req, res) {
         try {
+            // Esto estaba devolviendo [] porque la tabla estaba vacía
             const ingredients = await this.IngredientModel.findAll();
             res.json(ingredients);
         } catch (error) {
