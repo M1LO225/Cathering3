@@ -12,4 +12,4 @@ COPY --from=builder /app ./
 # Usuario no-root por seguridad
 USER node
 EXPOSE 3000
-CMD ["node", "src/index.js"]
+CMD ["node", "index.js"]

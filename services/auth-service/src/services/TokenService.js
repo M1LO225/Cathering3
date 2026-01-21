@@ -7,7 +7,6 @@ class TokenService {
         this.secret = process.env.JWT_SECRET || 'mi_secreto_super_seguro';
     }
 
-    // Este es el método que LoginUser estaba buscando y no encontraba
     generate(payload) {
         return jwt.sign(payload, this.secret, { expiresIn: '24h' });
     }
