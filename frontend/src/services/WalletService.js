@@ -1,5 +1,4 @@
-// frontend/src/services/WalletService.js
-const API_BASE_URL = import.meta.env.VITE_API_URL ||'http://localhost:3003/api/wallet';
+const API_BASE_URL = `${import.meta.env.VITE_API_URL}/wallet`; 
 
 class WalletService {
     constructor(token) {
@@ -11,7 +10,7 @@ class WalletService {
     }
 
     async getBalance() {
-        // Apuntamos a /balance (Wallet Service)
+        // Al llamar a /balance, la URL final será: .../api/wallet/balance
         const response = await fetch(`${API_BASE_URL}/balance`, {
             method: 'GET',
             headers: this.headers,
@@ -22,7 +21,7 @@ class WalletService {
     }
 
     async recharge(amount) {
-        // Apuntamos a /toup (Wallet Service)
+        // URL final: .../api/wallet/topup
         const response = await fetch(`${API_BASE_URL}/topup`, {
             method: 'POST',
             headers: this.headers,

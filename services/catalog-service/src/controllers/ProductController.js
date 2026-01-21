@@ -1,4 +1,3 @@
-// services/catalog-service/src/controllers/ProductController.js
 const { Op } = require('sequelize');
 
 class ProductController {
@@ -8,7 +7,7 @@ class ProductController {
         this.IngredientModel = IngredientModel;
     }
 
-    // 1. Obtener Menú (Estudiantes y Personal ven lo mismo)
+    // 1. Obtener Menú
     async getAll(req, res) {
         try {
             const user = req.user;
@@ -20,14 +19,17 @@ class ProductController {
 
             // Filtro para Estudiantes Y Personal
             if (user && (user.role === 'estudiante' || user.role === 'personal_academico')) {
-                const today = new Date().toISOString().split('T')[0];
+                // Generamos la fecha de hoy asegurando formato YYYY-MM-DD
+                const now = new Date();
+                const today = now.toISOString().split('T')[0];
                 
+                // LÓGICA BLINDADA: Solo permitimos NULL o fechas menores/iguales a hoy
                 whereClause[Op.and] = [
                     { 
                         [Op.or]: [
-                            { availableFrom: null },    // Fecha no establecida (Siempre visible)
-                            { availableFrom: '' },      // String vacío (Siempre visible)
-                            { availableFrom: { [Op.lte]: today } } // Fecha pasada o de hoy
+                            { availableFrom: null },           // Caso 1: Nunca se definió fecha (siempre visible)
+                            { availableFrom: { [Op.eq]: null } }, // Caso 1b: Refuerzo para nulos
+                            { availableFrom: { [Op.lte]: today } } // Caso 2: Fecha válida menor o igual a hoy
                         ]
                     }
                 ];
@@ -35,168 +37,136 @@ class ProductController {
 
             const products = await this.ProductModel.findAll({ where: whereClause });
             
-            // Arreglar URL de imagen
-            const productsWithImages = products.map(p => {
-                const json = p.toJSON();
-                if (json.image) json.imageUrl = `http://localhost:3000/uploads/${json.image}`;
-                return json;
-            });
-
-            res.json(productsWithImages);
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ error: 'Error fetching products' });
-        }
-    }
-
-    // 2. CREAR PRODUCTO (La corrección clave para los ingredientes)
-    async create(req, res) {
-        try {
-            const { 
-                name, description, price, stock, 
-                preparationTime, category, ingredients, availableFrom 
-            } = req.body;
-            
-            const file = req.file; 
-            const user = req.user;
-
-            if (!user.colegio_id) return res.status(403).json({ error: 'Sin colegio asignado.' });
-
-            // Sincronizar Colegio
-            let colegio = await this.ColegioModel.findByPk(user.colegio_id);
-            if (!colegio) {
-                colegio = await this.ColegioModel.create({
-                    id: user.colegio_id,
-                    name: 'Colegio Sincronizado',
-                    address: 'N/A', phone: 'N/A'
-                });
-            }
-            if (ingredients) {
-                const names = ingredients.split(',').map(n => n.trim());
+            // Corrección de rutas de imágenes
+            const updatedProducts = products.map(p => {
+                const productData = p.toJSON();
                 
-                for (const ingName of names) {
-                    if (ingName.length > 0) {
-                        // "Si no existe 'Maní' en la tabla maestra, créalo"
-                        await this.IngredientModel.findOrCreate({
-                            where: { name: ingName }, 
-                            defaults: { name: ingName }
-                        });
+                if (productData.image) {
+                    // Limpieza de localhost por si quedó basura antigua en la DB
+                    let cleanImage = productData.image.replace('http://localhost:3000', '');
+                    
+                    if (!cleanImage.startsWith('http') && !cleanImage.startsWith('/uploads')) {
+                        productData.image = `/uploads/${cleanImage}`;
+                    } else if (cleanImage.startsWith('/uploads')) {
+                        productData.image = cleanImage;
                     }
                 }
-            }
-
-            // Convertir fecha vacía a null
-            const dateToSave = availableFrom === '' ? null : availableFrom;
-
-            const newProduct = await this.ProductModel.create({
-                name, description, price, stock, preparationTime, category,
-                availableFrom: dateToSave,
-                ingredients: ingredients || '', 
-                image: file ? file.filename : null,
-                colegioId: user.colegio_id 
+                return productData;
             });
 
-            res.status(201).json(newProduct);
-
+            res.json(updatedProducts);
         } catch (error) {
-            console.error("Error creating product:", error);
+            console.error("Error obteniendo productos:", error);
             res.status(500).json({ error: error.message });
         }
     }
 
-    // 3. Endpoint que usa el Dropdown de Alergias
-    async getIngredients(req, res) {
+    // 2. Crear Producto
+    async create(req, res) {
         try {
-            // Esto lee la Tabla Maestra. Si create() no la llenó, esto devuelve []
-            const allIngredients = await this.IngredientModel.findAll();
-            res.json(allIngredients);
+            const { name, description, price, stock, preparationTime, category, ingredients, availableFrom, colegioId } = req.body;
+            
+            let imageUrl = null;
+            if (req.file) {
+                imageUrl = `/uploads/${req.file.filename}`; 
+            }
+
+            // --- VALIDACIÓN DE FECHA ESTRICTA ---
+            // Si lo que llega no es una fecha válida (YYYY-MM-DD), forzamos NULL
+            let validDate = null;
+            
+            // Verificamos si availableFrom tiene contenido y parece una fecha
+            if (availableFrom && typeof availableFrom === 'string' && availableFrom.length >= 10) {
+                 const parsedDate = Date.parse(availableFrom);
+                 if (!isNaN(parsedDate)) {
+                     validDate = availableFrom;
+                 }
+            }
+
+            const newProduct = await this.ProductModel.create({
+                name,
+                description,
+                price: parseFloat(price),
+                stock: parseInt(stock),
+                preparationTime: parseInt(preparationTime),
+                category,
+                image: imageUrl,
+                ingredients, 
+                availableFrom: validDate, // Aquí irá NULL si la fecha era "Invalid date" o vacía
+                colegioId
+            });
+
+            res.status(201).json(newProduct);
         } catch (error) {
-            console.error("Error fetching ingredients:", error);
-            res.status(500).json({ error: "Error getting ingredients" });
+            console.error("Error creando producto:", error);
+            res.status(500).json({ error: 'Error al crear el producto.' });
         }
     }
 
-    // ... (delete y getSafeMenu)
+    // 3. Eliminar Producto
     async delete(req, res) {
         try {
             const { id } = req.params;
-            const deleted = await this.ProductModel.destroy({ where: { id, colegioId: req.user.colegio_id } });
-            deleted ? res.json({msg: "Deleted"}) : res.status(404).json({error: "Not found"});
-        } catch(e) { res.status(500).json({error: e.message}); }
-    }
-
-    async getSafeMenu(req, res) {
-        try {
-            const user = req.user;
-            // 1. Recibimos las alergias desde el cuerpo de la petición (Vienen del Frontend)
-            // Ejemplo: ['Tomate', 'Maní']
-            const userAllergies = req.body.allergies || []; 
-            
-            // Normalizamos a minúsculas para comparar bien: ['tomate', 'mani']
-            const allergyNames = userAllergies.map(a => a.toLowerCase().trim());
-
-            // 2. Consultar Productos del Colegio (Igual que en tu legacy)
-            let whereClause = {};
-            if (user && user.colegio_id) {
-                whereClause.colegioId = user.colegio_id;
-            }
-
-            // Filtro de fecha para estudiantes (Lógica legacy que ya tenías)
-            const today = new Date().toISOString().split('T')[0];
-            whereClause[Op.and] = [
-                { 
-                    [Op.or]: [
-                        { availableFrom: null },
-                        { availableFrom: { [Op.lte]: today } }
-                    ]
-                }
-            ];
-
-            // 3. Traemos productos CON sus ingredientes
-            const products = await this.ProductModel.findAll({
-                where: whereClause,
-                include: [{
-                    model: this.IngredientModel,
-                    as: 'ingredients', // Asegúrate que en tu modelo la relación se llame así
-                    through: { attributes: [] } // Omitir tabla pivote
-                }]
+            const deleted = await this.ProductModel.destroy({
+                where: { id }
             });
 
-            // 4. LÓGICA DE NEGOCIO: Consulta Cruzada Manual (Tu código original adaptado)
-            const safeMenu = products.map(product => {
-                // Convertimos a JSON plano
-                const productData = product.toJSON();
-                
-                // Arreglo de URL de imagen (Tu fix anterior)
-                if (productData.image) {
-                    productData.imageUrl = `http://localhost:3000/uploads/${productData.image}`;
-                }
+            if (deleted) {
+                res.status(200).json({ message: 'Producto eliminado.' });
+            } else {
+                res.status(404).json({ error: 'Producto no encontrado.' });
+            }
+        } catch (error) {
+            console.error("Error eliminando producto:", error);
+            res.status(500).json({ error: 'Error al eliminar el producto.' });
+        }
+    }
 
+    // 4. Obtener Ingredientes
+    async getIngredients(req, res) {
+        try {
+            const ingredients = await this.IngredientModel.findAll();
+            res.json(ingredients);
+        } catch (error) {
+            console.error("Error obteniendo ingredientes:", error);
+            res.status(500).json({ error: 'Error al obtener ingredientes' });
+        }
+    }
+
+    // 5. Menú Seguro
+    async getSafeMenu(req, res) {
+        try {
+            const user = req.user; 
+            const userAllergies = user.allergies || []; 
+            const allergyNames = userAllergies.map(a => a.toLowerCase());
+
+            const products = await this.ProductModel.findAll({
+                where: { colegioId: user.colegio_id }
+            });
+
+            const safeMenu = products.map(product => {
+                const productData = product.toJSON();
                 let conflict = null;
 
-                // Sub-ciclo: Verificamos ingredientes
-                // Nota: Ahora comparamos NOMBRES (strings), no IDs, porque es más seguro entre servicios
-                if (productData.ingredients && productData.ingredients.length > 0) {
-                    for (const ingrediente of productData.ingredients) {
-                        const ingName = ingrediente.name.toLowerCase().trim();
-                        
-                        if (allergyNames.includes(ingName)) {
-                            conflict = ingrediente.name; // Guardamos el nombre real
-                            break; // Encontramos riesgo, paramos
-                        }
-                    }
-                } else if (productData.ingredientsStr) {
-                    // Fallback: Si usaste el campo de texto plano 'ingredientsStr'
-                    const names = productData.ingredientsStr.split(',');
+                if (productData.image) {
+                     let cleanImage = productData.image.replace('http://localhost:3000', '');
+                     if (!cleanImage.startsWith('http') && !cleanImage.startsWith('/uploads')) {
+                        productData.image = `/uploads/${cleanImage}`;
+                     } else {
+                        productData.image = cleanImage;
+                     }
+                }
+
+                if (productData.ingredients && typeof productData.ingredients === 'string') {
+                    const names = productData.ingredients.split(',');
                     for (const rawName of names) {
                         if (allergyNames.includes(rawName.trim().toLowerCase())) {
                             conflict = rawName.trim();
                             break;
                         }
                     }
-                }
-
-                // Inyectamos la info cruzada (Igual que tu legacy)
+                } 
+                
                 productData.has_risk = !!conflict;
                 productData.risk_ingredient = conflict;
 

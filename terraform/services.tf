@@ -54,7 +54,7 @@ resource "aws_ecs_task_definition" "gateway" {
     image = "${var.account_id}.dkr.ecr.us-east-1.amazonaws.com/api-gateway:latest"
     portMappings = [{ containerPort = 3000 }]
     environment = [
-      { name = "ORDER_SERVICE_URL", value = "http://order.cat.local:3000" },
+      { name = "ORDER_SERVICE_URL", value = "http://order.cat.local:3003" },
       { name = "AUTH_SERVICE_URL", value = "http://auth.cat.local:3001" },
       { name = "CATALOG_SERVICE_URL", value = "http://catalog.cat.local:3002" },
       { name = "JWT_SECRET", value = local.jwt_secret }

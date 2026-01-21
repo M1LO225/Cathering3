@@ -16,8 +16,9 @@ const services = {
 
 console.log('Configuración de Servicios:', services);
 
-// 1. Auth & Users & WALLET
-app.use(['/api/auth', '/api/users', '/api/wallet'], createProxyMiddleware({ 
+// 1. Auth & Users (SOLO Autenticación y Usuarios)
+// ❌ ANTES AQUÍ ESTABA 'wallet', LO HEMOS QUITADO
+app.use(['/api/auth', '/api/users'], createProxyMiddleware({ 
     target: services.auth, 
     changeOrigin: true,
     pathRewrite: {
@@ -26,29 +27,24 @@ app.use(['/api/auth', '/api/users', '/api/wallet'], createProxyMiddleware({
     onError: (err, req, res) => res.status(500).json({ error: 'Auth Service Down' })
 }));
 
-app.use('/api/products', createProxyMiddleware({ 
-    target: services.catalog, 
+// 2. Wallet & Orders (AHORA Wallet va a ORDERS) 
+// ✅ AQUÍ ES DONDE DEBE ESTAR
+app.use(['/api/orders', '/api/wallet'], createProxyMiddleware({ 
+    target: services.orders, 
     changeOrigin: true,
-    pathRewrite: {
-        '^/api/products': '', // Elimina /api/products de la URL
-    },
-    onError: (err, req, res) => res.status(500).json({ error: 'Catalog Service Down' })
+    // NO usamos pathRewrite aquí porque order-service define app.use('/api/wallet'...)
+    onError: (err, req, res) => res.status(500).json({ error: 'Order/Wallet Service Down' })
 }));
 
-app.use('/api/ingredients', createProxyMiddleware({ 
+// 3. Catalog (Productos e Ingredientes)
+app.use(['/api/products', '/api/ingredients', '/api/colegio'], createProxyMiddleware({ 
     target: services.catalog, 
     changeOrigin: true,
     pathRewrite: {
+        '^/api/products': '', 
         '^/api/ingredients': '/ingredients',
+        '^/api/colegio': ''
     },
-    onError: (err, req, res) => res.status(500).json({ error: 'Catalog Service Down' })
-}));
-
-app.use('/api/colegio', createProxyMiddleware({ 
-    target: services.catalog, 
-    changeOrigin: true,
-    pathRewrite: { 
-        '^/api/colegio': '' },
     onError: (err, req, res) => res.status(500).json({ error: 'Catalog Service Down' })
 }));
 
@@ -62,18 +58,10 @@ app.use('/uploads', createProxyMiddleware({
     onError: (err, req, res) => res.status(500).json({ error: 'Image Proxy Error' })
 }));
 
-// 3. Orders (Solo Pedidos)
-app.use('/api/orders', createProxyMiddleware({ 
-    target: services.orders, 
-    changeOrigin: true,
-    pathRewrite: {
-        '^/api/orders': '', // Limpia la URL para que llegue '/' al servicio 3003
-    },
-    onError: (err, req, res) => res.status(500).json({ error: 'Order Service Down' })
-}));
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'OK', services });
+});
 
-// Iniciar Gateway (Solo una vez)
 app.listen(PORT, () => {
     console.log(`API Gateway corriendo en puerto ${PORT}`);
-    console.log(`Redirigiendo tráfico a microservicios internos...`);
 });
