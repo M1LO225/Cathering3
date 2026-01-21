@@ -72,30 +72,32 @@ resource "aws_security_group" "alb_sg" {
 
 # Apps SG (Privado)
 resource "aws_security_group" "apps_sg" {
-  name   = "cat-prod-apps-sg"
-  vpc_id = module.vpc.vpc_id
+  name        = "cat-prod-apps-sg"
+  description = "Permitir trafico interno y SALIDA a internet"
+  vpc_id      = module.vpc.vpc_id
 
-  # Acepta tráfico del ALB
+  # 1. Entrada desde el Balanceador (Para que llegue tráfico web)
   ingress {
     from_port       = 0
-    to_port         = 65535
-    protocol        = "tcp"
-    security_groups = [aws_security_group.alb_sg.id]
+    to_port         = 0
+    protocol        = "-1" 
+    security_groups = [aws_security_group.alb_sg.id] 
   }
 
-  # Acepta tráfico entre ellos mismos
+  # 2. Entrada desde SÍ MISMO (Vital para que ECS conecte con RDS si comparten SG)
   ingress {
     from_port = 0
-    to_port   = 65535
-    protocol  = "tcp"
+    to_port   = 0
+    protocol  = "-1"
     self      = true
   }
 
+  # 3. 👇 SALIDA (ESTO FALTABA PARA SQS) 👇
   egress {
     from_port   = 0
     to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    protocol    = "-1" # Permitir todo protocolo
+    cidr_blocks = ["0.0.0.0/0"] # A cualquier destino (Internet via NAT)
   }
 }
 
@@ -110,6 +112,7 @@ resource "aws_security_group" "db_sg" {
     protocol        = "tcp"
     security_groups = [aws_security_group.apps_sg.id]
   }
+  
 }
 
 # ==========================================
@@ -225,4 +228,33 @@ resource "aws_iam_role_policy" "sqs_access" {
       Resource = "*"
     }]
   })
+}
+
+# 1. Política de permisos para SQS
+resource "aws_iam_policy" "sqs_full_access" {
+  name        = "cat-prod-sqs-policy"
+  description = "Permisos completos de SQS para los microservicios"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "sqs:SendMessage",
+          "sqs:ReceiveMessage",
+          "sqs:DeleteMessage",
+          "sqs:GetQueueAttributes",
+          "sqs:GetQueueUrl"
+        ],
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# 2. Conectar la política al Rol de la Tarea (ecs_task_role)
+resource "aws_iam_role_policy_attachment" "ecs_task_sqs_attach" {
+  role       = aws_iam_role.ecs_task_role.name
+  policy_arn = aws_iam_policy.sqs_full_access.arn
 }

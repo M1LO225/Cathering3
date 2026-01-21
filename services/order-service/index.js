@@ -1,8 +1,12 @@
-// order-service/src/index.js
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const { Sequelize, DataTypes } = require('sequelize');
+
+// Importar configuración DB centralizada
+const { sequelize, Order, OrderItem, Wallet, Transaction } = require('./src/config/db');
+
+// Importar Worker
+const startWorker = require('./src/workers/PaymentWorker');
 
 const app = express();
 const PORT = process.env.PORT || 3003;
@@ -10,65 +14,51 @@ const PORT = process.env.PORT || 3003;
 app.use(cors());
 app.use(express.json());
 
-// 1. CONFIGURACIÓN DB
-const isProduction = process.env.NODE_ENV === 'production';
+// 🔍 DEBUG 1: LOGUEAR TODO LO QUE ENTRA
+// Esto nos dirá si el Request llega y qué datos trae
+app.use((req, res, next) => {
+    console.log(`------------------------------------------------`);
+    console.log(`[INCOMING] ${req.method} ${req.url}`);
+    console.log(`[HEADERS] Auth: ${req.headers.authorization ? 'SI' : 'NO'}`);
+    
+    // IMPORTANTE: Si esto sale vacío {}, el problema es el parseo del body
+    console.log(`[BODY]`, JSON.stringify(req.body, null, 2)); 
+    console.log(`------------------------------------------------`);
+    next();
+});
 
-const sequelize = new Sequelize(
-    process.env.DB_NAME || 'cateringdb',
-    process.env.DB_USER || 'root',
-    process.env.DB_PASS || null,
-    {
-        host: process.env.DB_HOST || 'localhost',
-        dialect: isProduction ? 'postgres' : 'sqlite',
-        storage: isProduction ? null : './database.sqlite',
-        logging: false,
-        dialectOptions: isProduction ? {
-            ssl: {
-                require: true,
-                rejectUnauthorized: false // Necesario para RDS en algunos modos
-            }
-        } : {}
-    }
-);
-
-// 2. IMPORTAR DEFINICIONES DE MODELOS
-// (Asegúrate de que las rutas sean correctas según tu estructura de carpetas)
-const OrderModelDef = require('./src/models/OrderModel');
-const OrderItemModelDef = require('./src/models/OrderItemModel');
-const WalletModelDef = require('./src/models/WalletModel');
-const TransactionModelDef = require('./src/models/TransactionModel');
-
-// 3. INICIALIZAR MODELOS
-const Order = OrderModelDef(sequelize, DataTypes);
-const OrderItem = OrderItemModelDef(sequelize, DataTypes);
-const Wallet = WalletModelDef(sequelize, DataTypes);
-const Transaction = TransactionModelDef(sequelize, DataTypes);
-
-// 4. DEFINIR RELACIONES
-// Ordenes e Items
-Order.hasMany(OrderItem, { as: 'items', foreignKey: 'OrderId' });
-OrderItem.belongsTo(Order, { foreignKey: 'OrderId' });
-
-// Billetera y Transacciones
-Wallet.hasMany(Transaction, { as: 'transactions', foreignKey: 'walletId' });
-Transaction.belongsTo(Wallet, { foreignKey: 'walletId' });
-
-// 5. CONFIGURAR RUTAS
-// Importamos los creadores de rutas
-const createOrderRoutes = require('./src/routes/order.routes'); // Asegúrate que este archivo exista y exporte una función
+// RUTAS
+const createOrderRoutes = require('./src/routes/order.routes');
 const createWalletRoutes = require('./src/routes/wallet.routes');
 
-// Inyectamos modelos necesarios a las rutas de Órdenes (Ahora Order necesita Wallet para cobrar)
-// NOTA: Pasamos Wallet a las rutas de Order para poder validar saldo en el OrderController
-app.use('/api/orders', createOrderRoutes(Order, OrderItem, Wallet)); 
+const orderRouter = createOrderRoutes(Order, OrderItem, Wallet);
+const walletRouter = createWalletRoutes(Wallet, Transaction);
 
-// Inyectamos modelos a las rutas de Billetera
-app.use('/api/wallet', createWalletRoutes(Wallet));
+// RUTAS
+app.use('/api/orders', orderRouter);
+app.use('/api/wallet', walletRouter);
+app.use('/', walletRouter); 
+app.use('/', orderRouter);
 
-// 6. INICIAR SERVIDOR
-sequelize.sync({ force: false }).then(() => {
-    console.log('Base de datos sincronizada (Orders + Wallets)');
-    app.listen(PORT, () => {
-        console.log(`Order Service corriendo en el puerto ${PORT}`);
+// 🔍 DEBUG 2: MANEJADOR DE ERRORES GLOBAL (Blindaje final)
+// Si algo explota y no tiene try/catch, caerá aquí.
+app.use((err, req, res, next) => {
+    console.error("🔥 [FATAL ERROR] Excepción no controlada capturada en Index:");
+    console.error(err); // Esto imprimirá el stack trace completo en CloudWatch
+    console.error(err.stack);
+    res.status(500).json({ 
+        error: 'Error interno crítico del servidor',
+        details: err.message 
     });
-}).catch(err => console.error("Error al iniciar DB:", err));
+});
+
+// SERVER
+sequelize.sync({ force: false }).then(() => {
+    console.log('✅ Base de datos sincronizada');
+    app.listen(PORT, () => {
+        console.log(`🚀 Order Service corriendo en puerto ${PORT}`);
+    });
+    startWorker().catch(err => console.error("Fallo al iniciar worker:", err));
+}).catch(err => {
+    console.error('Error DB:', err);
+});

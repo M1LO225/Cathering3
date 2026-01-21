@@ -54,7 +54,7 @@ resource "aws_ecs_task_definition" "gateway" {
     image = "${var.account_id}.dkr.ecr.us-east-1.amazonaws.com/api-gateway:latest"
     portMappings = [{ containerPort = 3000 }]
     environment = [
-      { name = "ORDER_SERVICE_URL", value = "http://order.cat.local:3000" },
+      { name = "ORDER_SERVICE_URL", value = "http://order.cat.local:3003" },
       { name = "AUTH_SERVICE_URL", value = "http://auth.cat.local:3001" },
       { name = "CATALOG_SERVICE_URL", value = "http://catalog.cat.local:3002" },
       { name = "JWT_SECRET", value = local.jwt_secret }
@@ -154,71 +154,6 @@ resource "aws_ecs_service" "catalog" {
 }
 
 # ==========================================
-# 3. ORDER SERVICE
-# ==========================================
-resource "aws_service_discovery_service" "order" {
-  name = "order"
-  dns_config {
-    namespace_id = aws_service_discovery_private_dns_namespace.main.id
-    dns_records {
-      ttl  = 10
-      type = "A"
-    }
-  }
-}
-
-resource "aws_ecs_task_definition" "order" {
-  family                   = "cat-prod-order"
-  network_mode             = "awsvpc"
-  requires_compatibilities = ["FARGATE"]
-  cpu                      = "256"
-  memory                   = "512"
-  execution_role_arn       = aws_iam_role.ecs_execution_role.arn
-  task_role_arn            = aws_iam_role.ecs_task_role.arn
-
-  container_definitions = jsonencode([{
-    name  = "order-service"
-    image = "${var.account_id}.dkr.ecr.us-east-1.amazonaws.com/order-service:latest"
-    portMappings = [{ containerPort = 3003 }]
-    environment = [
-      { name = "DB_HOST", value = aws_db_instance.postgres.address },
-      { name = "DB_USER", value = aws_db_instance.postgres.username },
-      { name = "DB_PASS", value = aws_db_instance.postgres.password },
-      { name = "DB_NAME", value = aws_db_instance.postgres.db_name },
-      { name = "NODE_ENV", value = "production" },
-      { name = "SQS_WALLET_URL", value = aws_sqs_queue.wallet_deduction.id },
-      { name = "JWT_SECRET", value = local.jwt_secret },
-      { name = "PORT", value = "3003" }
-    ]
-    logConfiguration = {
-      logDriver = "awslogs"
-      options = {
-        "awslogs-group"         = "/ecs/cat-prod"
-        "awslogs-region"        = var.aws_region
-        "awslogs-stream-prefix" = "order"
-      }
-    }
-  }])
-}
-
-resource "aws_ecs_service" "order" {
-  name            = "order-service"
-  cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.order.arn
-  desired_count   = 1
-  launch_type     = "FARGATE"
-
-  network_configuration {
-    subnets         = module.vpc.private_subnets
-    security_groups = [aws_security_group.apps_sg.id]
-  }
-
-  service_registries {
-    registry_arn = aws_service_discovery_service.order.arn
-  }
-}
-
-# ==========================================
 # 4. AUTH SERVICE
 # ==========================================
 resource "aws_service_discovery_service" "auth" {
@@ -280,6 +215,72 @@ resource "aws_ecs_service" "auth" {
 
   service_registries {
     registry_arn = aws_service_discovery_service.auth.arn
+  }
+}
+
+
+# ==========================================
+# 3. ORDER SERVICE
+# ==========================================
+resource "aws_service_discovery_service" "order" {
+  name = "order"
+  dns_config {
+    namespace_id = aws_service_discovery_private_dns_namespace.main.id
+    dns_records {
+      ttl  = 10
+      type = "A"
+    }
+  }
+}
+
+resource "aws_ecs_task_definition" "order" {
+  family                   = "cat-prod-order"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = "256"
+  memory                   = "512"
+  execution_role_arn       = aws_iam_role.ecs_execution_role.arn
+  task_role_arn            = aws_iam_role.ecs_task_role.arn
+
+  container_definitions = jsonencode([{
+    name  = "order-service"
+    image = "${var.account_id}.dkr.ecr.us-east-1.amazonaws.com/order-service:latest"
+    portMappings = [{ containerPort = 3003 }]
+    environment = [
+      { name = "DB_HOST", value = aws_db_instance.postgres.address },
+      { name = "DB_USER", value = aws_db_instance.postgres.username },
+      { name = "DB_PASS", value = aws_db_instance.postgres.password },
+      { name = "DB_NAME", value = aws_db_instance.postgres.db_name },
+      { name = "NODE_ENV", value = "production" },
+      { name = "SQS_WALLET_URL", value = aws_sqs_queue.wallet_deduction.id },
+      { name = "JWT_SECRET", value = local.jwt_secret },
+      { name = "PORT", value = "3003" }
+    ]
+    logConfiguration = {
+      logDriver = "awslogs"
+      options = {
+        "awslogs-group"         = "/ecs/cat-prod"
+        "awslogs-region"        = var.aws_region
+        "awslogs-stream-prefix" = "order"
+      }
+    }
+  }])
+}
+
+resource "aws_ecs_service" "order" {
+  name            = "order-service"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.order.arn
+  desired_count   = 1
+  launch_type     = "FARGATE"
+
+  network_configuration {
+    subnets         = module.vpc.private_subnets
+    security_groups = [aws_security_group.apps_sg.id]
+  }
+
+  service_registries {
+    registry_arn = aws_service_discovery_service.order.arn
   }
 }
 

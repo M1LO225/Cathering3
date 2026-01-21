@@ -1,30 +1,42 @@
 // services/catalog-service/src/models/ColegioModel.js
+const { Model } = require('sequelize');
+
 module.exports = (sequelize, DataTypes) => {
-    const Colegio = sequelize.define('Colegio', {
+    class Colegio extends Model {}
+
+    Colegio.init({
         id: {
             type: DataTypes.INTEGER,
             primaryKey: true,
             autoIncrement: true
         },
-        name: { 
+        // --- CORRECCIÓN: USAR NOMBRES EN ESPAÑOL (Como en la DB) ---
+        nombre: { 
             type: DataTypes.STRING,
             allowNull: false
         },
-        address: { // Changed from direccion
-            type: DataTypes.STRING
+        direccion: { 
+            type: DataTypes.STRING,
+            allowNull: true
         },
-        phone: { // Changed from telefono
-            type: DataTypes.STRING
+        telefono: { 
+            type: DataTypes.STRING,
+            allowNull: true
         },
-        city: { // Changed from ciudad
-            type: DataTypes.STRING
+        ciudad: { 
+            type: DataTypes.STRING,
+            allowNull: true
         },
-        province: { // Changed from provincia
-            type: DataTypes.STRING
+        provincia: { 
+            type: DataTypes.STRING,
+            allowNull: true
         }
+        // ------------------------------------------------------------
     }, {
-        tableName: 'colegios', 
-        timestamps: true 
+        sequelize,
+        modelName: 'Colegio',
+        tableName: 'colegios', // Aseguramos que apunte a la tabla existente
+        timestamps: true // Para createdAt y updatedAt
     });
 
     return Colegio;
