@@ -1,5 +1,5 @@
 // frontend/src/services/WalletService.js
-const API_BASE_URL = 'http://localhost:3003/api/wallet';
+const API_BASE_URL = import.meta.env.VITE_API_URL ||'http://localhost:3003/api/wallet';
 
 class WalletService {
     constructor(token) {
