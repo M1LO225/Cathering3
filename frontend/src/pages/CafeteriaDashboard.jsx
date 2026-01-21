@@ -100,30 +100,29 @@ const CafeteriaDashboard = () => {
             
             {/* Create Form */}
             <div style={{ border: '1px solid #ccc', padding: '20px', marginBottom: '30px', borderRadius: '8px' }}>
-                <h3>Add New Product</h3>
+                <h3>Añade un Nuevo Producto</h3>
                 <form onSubmit={handleSubmit} encType="multipart/form-data">
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                        {/* INPUT NAMES MUST MATCH STATE KEYS (ENGLISH) */}
-                        <Input label="Product Name" name="name" value={newProduct.name} onChange={handleChange} required />
-                        <Input label="Price ($)" name="price" type="number" step="0.01" value={newProduct.price} onChange={handleChange} required />
+                        <Input label="Nombre del Producto" name="name" value={newProduct.name} onChange={handleChange} required />
+                        <Input label="Precio ($)" name="price" type="number" step="0.01" value={newProduct.price} onChange={handleChange} required />
                         <Input label="Stock" name="stock" type="number" value={newProduct.stock} onChange={handleChange} />
-                        <Input label="Prep Time (min)" name="preparationTime" type="number" value={newProduct.preparationTime} onChange={handleChange} />
-                        <Input label="Available From" name="availableFrom" type="date" value={newProduct.availableFrom} onChange={handleChange}/>                  
+                        <Input label="Tiempo de Preparación (min)" name="preparationTime" type="number" value={newProduct.preparationTime} onChange={handleChange} />
+                        <Input label="Disponible Desde" name="availableFrom" type="date" value={newProduct.availableFrom} onChange={handleChange}/>                  
                     </div>
-                    <Input label="Description" name="description" value={newProduct.description} onChange={handleChange} />
-                    <Input label="Ingredients (comma separated)" name="ingredients" placeholder="e.g. Peanuts, Milk" value={newProduct.ingredients} onChange={handleChange} />
+                    <Input label="Descripción" name="description" value={newProduct.description} onChange={handleChange} />
+                    <Input label="Ingredientes (separados por comas)" name="ingredients" placeholder="ej. Manzana, Banana" value={newProduct.ingredients} onChange={handleChange} />
                     
                     <div style={{ marginBottom: '15px' }}>
-                        <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Product Image</label>
+                        <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Imagen del Producto</label>
                         <input type="file" accept="image/*" onChange={handleFileChange} required />
                     </div>
 
-                    <Button type="submit">Publish Product</Button>
+                    <Button type="submit">Publicar Producto</Button>
                 </form>
             </div>
 
             {/* Product List */}
-            <h3>Current Menu</h3>
+            <h3>Menú Actual</h3>
             {loading ? <p>Loading...</p> : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '20px' }}>
                     {Array.isArray(products) && products.length > 0 ? (
@@ -153,7 +152,7 @@ const CafeteriaDashboard = () => {
                         ))
                     ) : (
                         <div style={{gridColumn: '1 / -1', textAlign: 'center', padding: '20px', color: '#666'}}>
-                            <p>No products found.</p>
+                            <p>No hay productos.</p>
                         </div>
                     )}
                 </div>
